@@ -20,15 +20,29 @@ export function useAuth(): AuthState {
   useEffect(() => {
     if (!supabase) return;
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setReady(true);
-    });
+    // 세션 확인이 실패하거나 늦어도 화면은 떠야 한다.
+    // Supabase 프로젝트가 일시정지되면 호스트가 DNS에서 사라지는데, supabase-js는 그걸
+    // 재시도 대상으로 보고 수십 초를 버틴다. 그동안 ready가 false면 흰 화면만 보인다.
+    // (2026-09-24 실제로 겪음: 50초 흰 화면 → 그제서야 읽기전용 화면)
+    const fallback = setTimeout(() => setReady(true), 3000);
+    supabase.auth
+      .getSession()
+      .then(({ data }) => setSession(data.session))
+      .catch(() => {
+        // 못 물어봤으면 비로그인으로 둔다. 로그인 상태는 복구되면 onAuthStateChange가 알려준다.
+      })
+      .finally(() => {
+        clearTimeout(fallback);
+        setReady(true);
+      });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      clearTimeout(fallback);
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   return { session, ready, cloudEnabled: isCloudEnabled };
