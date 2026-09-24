@@ -1,15 +1,20 @@
 name: Supabase keepalive
 
-# Supabase 무료 플랜은 약 7일간 요청이 없으면 프로젝트를 일시정지한다.
-# 3일마다 가벼운 조회를 한 번 보내 활동으로 잡히게 한다.
-# (RLS 때문에 결과는 빈 목록이어도 DB까지 요청이 들어가면 충분하다)
+# Supabase 무료 플랜은 7일간 "활동이 적으면" 프로젝트를 일시정지한다.
+# 공식 문서 기준은 횟수다 — "하루에 몇 건의 사용자 요청"이 있어야 한다:
+# https://supabase.com/docs/guides/platform/free-project-pausing
+#
+# 처음엔 3일마다 1번만 보냈는데(= 주 2~3건) 그걸로는 부족해서 2026-09-23경 정지됐다.
+# (요청 자체는 매번 성공했다 — 닿지 않은 게 아니라 양이 모자랐다)
+# 그래서 6시간마다 = 하루 4번으로 올린다.
 #
 # 필요한 저장소 Secrets: SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY (sb_publishable_…, secret 키 금지)
 # ponytail: GitHub는 저장소에 60일간 커밋이 없으면 예약 실행을 멈춘다 — 그때 메일이 오면 다시 켤 것.
 
 on:
   schedule:
-    - cron: '0 0 */3 * *'
+    # GitHub 예약 실행은 몇 시간씩 밀리거나 건너뛸 수 있다. 하루 4번이면 몇 번 밀려도 남는다.
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
@@ -18,6 +23,10 @@ jobs:
     steps:
       - name: Ping Supabase
         run: |
-          curl -sf -o /dev/null \
+          # 상태 코드를 찍어 둔다. 조용히 성공한 척하고 넘어가면 이번처럼 원인을 못 찾는다.
+          code=$(curl -s -o /tmp/body -w '%{http_code}' \
             "${{ secrets.SUPABASE_URL }}/rest/v1/maps?select=id&limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}"
+            -H "apikey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}")
+          echo "HTTP $code / body: $(head -c 200 /tmp/body)"
+          # 2xx가 아니면 실패로 남겨 Actions 알림이 오게 한다 (정지되면 DNS부터 사라져 000이 찍힌다)
+          [ "$code" -ge 200 ] && [ "$code" -lt 300 ]
