@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth, signInWith, signOut } from '../../hooks/useAuth';
+import { deleteAccount } from '../../db/account';
 import { syncNow } from '../../db/cloudSync';
 import { useMindMapStore } from '../../store/useMindMapStore';
 import { listMaps, loadMindMap } from '../../db/mindmapDB';
@@ -20,6 +21,23 @@ export function AccountMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [state, setState] = useState<SyncState>('idle');
   const [message, setMessage] = useState<string | null>(null);
+  // 탈퇴는 되돌릴 수 없어 2단계로 받는다. deleting은 연타 방지용.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const runDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      location.reload(); // 계정이 사라졌으니 처음 화면으로
+    } catch (err) {
+      setState('error');
+      setMessage(err instanceof Error ? err.message : String(err));
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
+  };
 
   if (!cloudEnabled || !ready) return null;
 
@@ -151,6 +169,37 @@ export function AccountMenu() {
               로그아웃
             </button>
             <div className="mt-1 text-[10px] text-slate-600">로그아웃해도 이 브라우저의 맵은 남습니다.</div>
+            <div className="mt-3 border-t border-slate-800 pt-2">
+              {!confirmingDelete ? (
+                <button
+                  className="w-full text-left text-[11px] text-slate-500 hover:text-red-300"
+                  onClick={() => setConfirmingDelete(true)}
+                >
+                  회원 탈퇴
+                </button>
+              ) : (
+                <>
+                  <div className="text-[11px] text-red-300">
+                    계정과 모든 맵이 지워집니다. 되돌릴 수 없습니다.
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      className="h-7 flex-1 rounded-md bg-red-900/60 text-[11px] text-red-100 hover:bg-red-900 disabled:opacity-50"
+                      onClick={runDelete}
+                      disabled={deleting}
+                    >
+                      {deleting ? '지우는 중…' : '정말 탈퇴'}
+                    </button>
+                    <button
+                      className="h-7 flex-1 rounded-md bg-slate-800 text-[11px] text-slate-300 hover:bg-slate-700"
+                      onClick={() => setConfirmingDelete(false)}
+                    >
+                      취소
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </>
       )}
