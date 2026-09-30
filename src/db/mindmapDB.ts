@@ -23,6 +23,11 @@ async function getDB(name = dbName): Promise<IDBPDatabase> {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
       }
     },
+    blocking(db) {
+      // deleteDatabase가 이 연결을 대기 중이면, 이 연결을 닫아 삭제를 진행시킨다.
+      // 이전 탭에서 남겨둔 연결들도 이 콜백으로 닫혀야 deleteDatabase가 성공한다.
+      db.close();
+    },
   });
 }
 
@@ -141,11 +146,17 @@ export async function clearLocalData(): Promise<void> {
   const name = dbName;
   await new Promise<void>((resolve) => {
     const req = indexedDB.deleteDatabase(name);
-    // 다른 탭이 DB를 잡고 있으면 blocked가 온다. 기다리지 않고 넘어간다 —
-    // 서버 데이터는 이미 지워졌고, 남은 로컬 사본은 다음 실행에서 사라진다.
     req.onsuccess = () => resolve();
-    req.onerror = () => resolve();
-    req.onblocked = () => resolve();
+    req.onerror = () => {
+      console.warn(`[clearLocalData] Failed to delete IndexedDB "${name}":`, req.error);
+      resolve();
+    };
+    req.onblocked = () => {
+      // getDB()의 blocking 콜백이 열린 연결을 닫지 못했거나, 다른 곳에서
+      // 같은 DB를 계속 열고 있는 경우. 기다리지 않고 넘어간다 —
+      // 서버 데이터는 이미 지워졌고, 남은 로컬 사본은 다음 실행에서 사라진다.
+      resolve();
+    };
   });
   for (const key of ['last-map-id', 'note-panel-width', 'note-panel-side', LEGACY_CLAIMED_KEY]) {
     localStorage.removeItem(key);
