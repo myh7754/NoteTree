@@ -12,8 +12,29 @@ export async function deleteAccount(): Promise<void> {
   if (!supabase) throw new Error('클라우드가 꺼져 있어 탈퇴할 계정이 없습니다.');
 
   const { error } = await supabase.functions.invoke('delete-account');
-  if (error) throw new Error(`탈퇴에 실패했습니다: ${error.message}`);
+  if (error) {
+    let message = `탈퇴에 실패했습니다: ${error.message}`;
 
-  await clearLocalData();
-  await supabase.auth.signOut();
+    // Edge Function 에러의 실제 사유는 응답 본문에 있다
+    if (error.context) {
+      try {
+        const body = await error.context.json();
+        if (body.error) {
+          message = `탈퇴에 실패했습니다: ${body.error}`;
+        }
+      } catch {
+        // 본문 읽기 실패는 무시하고 기본 메시지 유지
+      }
+    }
+
+    throw new Error(message, { cause: error });
+  }
+
+  try {
+    await clearLocalData();
+  } finally {
+    // 로컬 정리 실패와 무관하게 반드시 로그아웃한다.
+    // 서버 계정은 이미 지워졌으므로 로그아웃은 언제나 옳다.
+    await supabase.auth.signOut();
+  }
 }

@@ -40,4 +40,65 @@ describe('deleteAccount', () => {
     expect(clearLocalData).not.toHaveBeenCalled();
     expect(signOut).not.toHaveBeenCalled();
   });
+
+  it('응답 본문에서 에러 사유를 추출한다', async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Edge Function returned a non-2xx status code',
+        context: {
+          json: async () => ({ error: 'unauthorized' }),
+        },
+      },
+    });
+    await expect(deleteAccount()).rejects.toThrow('unauthorized');
+    expect(clearLocalData).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('응답 본문 읽기가 실패해도 탈퇴 실패로 던진다', async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Edge Function returned a non-2xx status code',
+        context: {
+          json: async () => {
+            throw new Error('parse failed');
+          },
+        },
+      },
+    });
+    await expect(deleteAccount()).rejects.toThrow(/탈퇴/);
+    expect(clearLocalData).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('clearLocalData가 실패해도 signOut을 호출한다', async () => {
+    invoke.mockResolvedValue({ data: { ok: true }, error: null });
+    clearLocalData.mockRejectedValue(new Error('storage error'));
+
+    await expect(deleteAccount()).rejects.toThrow('storage error');
+    expect(clearLocalData).toHaveBeenCalled();
+    expect(signOut).toHaveBeenCalled();
+  });
+});
+
+describe('deleteAccount (클라우드 OFF)', () => {
+  it('클라우드가 꺼졌으면 로컬을 지우지 않는다', async () => {
+    vi.resetModules();
+
+    const clearLocalDataNull = vi.fn();
+    vi.doMock('./supabase', () => ({
+      supabase: null,
+      isCloudEnabled: false,
+    }));
+    vi.doMock('./mindmapDB', () => ({
+      clearLocalData: () => clearLocalDataNull(),
+    }));
+
+    const { deleteAccount: deleteAccountNull } = await import('./account');
+
+    await expect(deleteAccountNull()).rejects.toThrow('클라우드가 꺼져 있어');
+    expect(clearLocalDataNull).not.toHaveBeenCalled();
+  });
 });
