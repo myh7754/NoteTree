@@ -17,18 +17,20 @@ export function setDbUser(userId: string | null): void {
 }
 
 async function getDB(name = dbName): Promise<IDBPDatabase> {
-  return openDB(name, DB_VERSION, {
+  const dbPromise = openDB(name, DB_VERSION, {
     upgrade(db) {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
       }
     },
-    blocking(db) {
-      // deleteDatabase가 이 연결을 대기 중이면, 이 연결을 닫아 삭제를 진행시킨다.
-      // 이전 탭에서 남겨둔 연결들도 이 콜백으로 닫혀야 deleteDatabase가 성공한다.
-      db.close();
+    blocking() {
+      // 이 연결이 deleteDatabase나 업그레이드를 막고 있다는 신호.
+      // 닫아 줘야 진행된다. blocking 콜백은 인자로 db를 받지 않고
+      // currentVersion/blockedVersion을 받으므로, 클로저로 잡은 dbPromise를 닫는다.
+      void dbPromise.then((db) => db.close());
     },
   });
+  return dbPromise;
 }
 
 /**
