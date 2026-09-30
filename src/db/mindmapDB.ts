@@ -132,3 +132,22 @@ export async function writeMapFromCloud(
   const db = await getDB();
   await db.put(STORE_NAME, record);
 }
+
+/**
+ * 이 브라우저에 남은 이 계정의 흔적을 지운다 (탈퇴용).
+ * 서버 삭제가 성공한 뒤에만 부를 것 — 반대로 하면 서버엔 남고 화면에서만 사라진다.
+ */
+export async function clearLocalData(): Promise<void> {
+  const name = dbName;
+  await new Promise<void>((resolve) => {
+    const req = indexedDB.deleteDatabase(name);
+    // 다른 탭이 DB를 잡고 있으면 blocked가 온다. 기다리지 않고 넘어간다 —
+    // 서버 데이터는 이미 지워졌고, 남은 로컬 사본은 다음 실행에서 사라진다.
+    req.onsuccess = () => resolve();
+    req.onerror = () => resolve();
+    req.onblocked = () => resolve();
+  });
+  for (const key of ['last-map-id', 'note-panel-width', 'note-panel-side', LEGACY_CLAIMED_KEY]) {
+    localStorage.removeItem(key);
+  }
+}
