@@ -32,9 +32,10 @@ export async function deleteAccount(): Promise<void> {
 
   try {
     await clearLocalData();
-  } finally {
-    // 로컬 정리 실패와 무관하게 반드시 로그아웃한다.
-    // 서버 계정은 이미 지워졌으므로 로그아웃은 언제나 옳다.
-    await supabase.auth.signOut();
+  } catch (err) {
+    // 서버 삭제는 이미 성공했다. 로컬 정리 실패를 탈퇴 실패로 보고하지 않는다.
+    console.warn('[deleteAccount] 서버 삭제 후 로컬 정리에 실패했습니다:', err);
   }
+  // 서버 계정은 이미 지워졌으므로 로그아웃은 언제나 옳다.
+  await supabase.auth.signOut();
 }

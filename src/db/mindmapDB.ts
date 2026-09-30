@@ -3,6 +3,7 @@ import type { MindMapData, MapSummary, PersistedState } from '../types';
 
 const LEGACY_DB_NAME = 'mindmap-db';
 const STORE_NAME = 'maps';
+// 버전을 올리면 일반 업그레이드에서도 blocking() 경로가 실행된다. 그때 그 콜백을 다시 검토할 것.
 const DB_VERSION = 1;
 const LEGACY_CLAIMED_KEY = 'legacy-maps-claimed';
 
@@ -156,11 +157,16 @@ export async function clearLocalData(): Promise<void> {
     req.onblocked = () => {
       // getDB()의 blocking 콜백이 열린 연결을 닫지 못했거나, 다른 곳에서
       // 같은 DB를 계속 열고 있는 경우. 기다리지 않고 넘어간다 —
-      // 서버 데이터는 이미 지워졌고, 남은 로컬 사본은 다음 실행에서 사라진다.
+      // 서버 데이터는 이미 지워졌다. 이 경우 남은 로컬 사본은 방치된다
+      // (재시도 없음, 이후 아무도 이 이름을 다시 열지 않는다). 실제로는 blocking()이
+      // 다른 연결을 닫고 페이지가 리로드되므로 대기 중인 삭제가 대개 완료된다.
       resolve();
     };
   });
-  for (const key of ['last-map-id', 'note-panel-width', 'note-panel-side', LEGACY_CLAIMED_KEY]) {
+  // LEGACY_CLAIMED_KEY는 일부러 지우지 않는다. 사용자 데이터가 아니라 플래그이고,
+  // 지우면 남아 있는 옛 mindmap-db를 다음 로그인 사용자가 가져가 자기 클라우드로
+  // 올리게 된다(다른 사람 데이터 유출).
+  for (const key of ['last-map-id', 'note-panel-width', 'note-panel-side']) {
     localStorage.removeItem(key);
   }
 }

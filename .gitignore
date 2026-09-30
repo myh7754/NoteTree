@@ -8,3 +8,6 @@ dist/
 # К║°Л╩╛ М≥≤Й╡╫КЁ─Л┬≤ (Supabase М┌╓ К⌠╠)
 .env.local
 .env*.local
+
+# Supabase CLI ╥ндц ╩Себ (га╥на╖ф╝ ref ╣Н)
+supabase/.temp/

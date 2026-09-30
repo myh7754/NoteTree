@@ -73,13 +73,16 @@ describe('deleteAccount', () => {
     expect(signOut).not.toHaveBeenCalled();
   });
 
-  it('clearLocalData가 실패해도 signOut을 호출한다', async () => {
+  it('clearLocalData가 실패해도 탈퇴는 성공으로 끝나고 signOut을 호출한다', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     invoke.mockResolvedValue({ data: { ok: true }, error: null });
     clearLocalData.mockRejectedValue(new Error('storage error'));
 
-    await expect(deleteAccount()).rejects.toThrow('storage error');
+    await expect(deleteAccount()).resolves.toBeUndefined();
     expect(clearLocalData).toHaveBeenCalled();
     expect(signOut).toHaveBeenCalled();
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 });
 

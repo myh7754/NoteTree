@@ -31,7 +31,8 @@ Deno.serve(async (req) => {
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      { auth: { persistSession: false, autoRefreshToken: false } }
     );
 
     // 토큰이 가리키는 사용자를 확인한다. 위조된 토큰이면 여기서 걸린다.
@@ -39,9 +40,12 @@ Deno.serve(async (req) => {
     const { data, error } = await admin.auth.getUser(token);
     if (error || !data.user) return json({ error: 'unauthorized' }, 401);
 
-    // maps·profiles는 on delete cascade로 함께 사라진다.
+    // maps·showcase_owners는 on delete cascade로 함께 사라진다.
     const { error: delErr } = await admin.auth.admin.deleteUser(data.user.id);
-    if (delErr) return json({ error: delErr.message }, 500);
+    if (delErr) {
+      console.error('[delete-account] deleteUser failed', delErr);
+      return json({ error: '삭제에 실패했습니다' }, 500);
+    }
 
     return json({ ok: true }, 200);
   } catch (err) {

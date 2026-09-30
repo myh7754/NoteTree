@@ -53,7 +53,7 @@ describe('clearLocalData', () => {
     expect(localStorage.getItem('last-map-id')).toBeNull();
     expect(localStorage.getItem('note-panel-width')).toBeNull();
     expect(localStorage.getItem('note-panel-side')).toBeNull();
-    expect(localStorage.getItem('legacy-maps-claimed')).toBeNull();
+    expect(localStorage.getItem('legacy-maps-claimed')).toBe('1');
   });
 
   it('deleteDatabase가 onblocked를 부르면 resolve되고 localStorage를 지운다', async () => {
@@ -73,6 +73,13 @@ describe('clearLocalData', () => {
     expect(localStorage.getItem('last-map-id')).toBeNull();
     expect(localStorage.getItem('note-panel-width')).toBeNull();
     expect(localStorage.getItem('note-panel-side')).toBeNull();
-    expect(localStorage.getItem('legacy-maps-claimed')).toBeNull();
+    expect(localStorage.getItem('legacy-maps-claimed')).toBe('1');
+  });
+
+  it('legacy-maps-claimed 플래그는 지우지 않는다 (다음 사용자에게 옛 맵이 넘어가는 유출 방지)', async () => {
+    setDbUser('user-1');
+    localStorage.setItem('legacy-maps-claimed', '1');
+    await clearLocalData();
+    expect(localStorage.getItem('legacy-maps-claimed')).toBe('1');
   });
 });
