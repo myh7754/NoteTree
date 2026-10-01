@@ -69,3 +69,26 @@ drop policy if exists "공개 계정 맵은 누구나 조회" on public.maps;
 create policy "공개 계정 맵은 누구나 조회"
   on public.maps for select
   using (owner_id in (select owner_id from public.showcase_owners));
+
+-- ─────────────────────────────────────────────────────────────
+-- 보유 기간: 소프트 삭제한 맵을 30일 뒤 완전히 지운다 (2026-10-01 적용)
+--
+-- 맵 삭제가 소프트 삭제인 이유는 따로 있다 — 실제로 지우면 다른 기기가 "여긴 없네" 하고
+-- 되살려 올린다(deleted_at 주석 참고). 하지만 영구 보존은 개인정보 처리방침과 맞지 않는다.
+-- 30일이면 모든 기기가 삭제를 전파받고도 남는다.
+--
+-- pg_cron은 이 프로젝트에서 pg_catalog 스키마에 설치돼 있다.
+-- 시각은 UTC다: 18:00 UTC = KST 03:00.
+-- 등록 상태 확인:  select jobid, jobname, schedule, active from cron.job;
+-- 실행 이력 확인:  select * from cron.job_run_details order by start_time desc limit 10;
+-- 해제:            select cron.unschedule('purge-deleted-maps');
+-- ─────────────────────────────────────────────────────────────
+create extension if not exists pg_cron;
+
+-- 이미 등록돼 있으면 지우고 다시 건다 (cron.schedule은 같은 이름이면 덮어쓰지만 명시해 둔다)
+-- select cron.unschedule('purge-deleted-maps');
+select cron.schedule(
+  'purge-deleted-maps',
+  '0 18 * * *',
+  $$delete from public.maps where deleted_at is not null and deleted_at < now() - interval '30 days'$$
+);
