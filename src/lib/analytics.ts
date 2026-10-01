@@ -53,8 +53,14 @@ function warn(message: string) {
   console.warn(`[analytics] ${message}`);
 }
 
-const key = import.meta.env.VITE_POSTHOG_KEY;
-const host = import.meta.env.VITE_POSTHOG_HOST;
+/**
+ * PostHog가 직접 "Safe to use in public apps"라고 적어둔 공개 토큰이다(write-only).
+ * Sentry DSN과 같은 이유로 코드에 둔다 — 자세한 사정은 lib/sentry.ts 참고.
+ */
+const DEFAULT_KEY = 'phc_raiq8CcwCEkCKmqPz2zs4ko6Z8n38XYuQZ6TS77yMSn2';
+const DEFAULT_HOST = 'https://us.i.posthog.com';
+const key = import.meta.env.VITE_POSTHOG_KEY ?? DEFAULT_KEY;
+const host = import.meta.env.VITE_POSTHOG_HOST ?? DEFAULT_HOST;
 /** 개발 중에는 보내지 않는다 — 실 데이터를 테스트로 더럽히지 않기 위해. */
 const enabled = Boolean(key && host) && !import.meta.env.DEV;
 

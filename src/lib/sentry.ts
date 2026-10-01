@@ -10,7 +10,15 @@
  */
 import * as Sentry from '@sentry/react';
 
-const dsn = import.meta.env.VITE_SENTRY_DSN;
+/**
+ * DSN은 "어느 프로젝트로 에러를 보낼지" 가리키는 주소일 뿐, 비밀이 아니다.
+ * VITE_ 변수는 번들에 그대로 박혀 전 세계에 공개되므로 환경변수로 숨겨봐야 의미가 없다.
+ * 그래서 기본값을 코드에 둔다 — 배포마다 변수를 등록하는 수고가 사라진다.
+ * 재발급하면 이 값을 고치거나, 환경변수로 덮어쓰면 된다.
+ */
+const DEFAULT_DSN =
+  'https://6bf348ba49752a31e0a0dfb06a7d7640@o4512178630492160.ingest.de.sentry.io/4512178654150736';
+const dsn = import.meta.env.VITE_SENTRY_DSN ?? DEFAULT_DSN;
 /** 개발 중 일부러 낸 에러로 실 통계를 더럽히지 않는다. */
 const enabled = Boolean(dsn) && !import.meta.env.DEV;
 
