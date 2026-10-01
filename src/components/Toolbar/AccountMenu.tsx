@@ -119,6 +119,7 @@ export function AccountMenu() {
               {state === 'error' && (
                 <div className="mt-2 text-[11px] text-red-300 break-words">{message}</div>
               )}
+              <PrivacyLink />
             </div>
           </>
         )}
@@ -200,10 +201,23 @@ export function AccountMenu() {
                 </>
               )}
             </div>
+            <PrivacyLink />
           </div>
         </>
       )}
     </div>
+  );
+}
+
+/** 처리방침은 법적 고지라 로그인 여부와 무관하게 닿을 수 있어야 한다. */
+function PrivacyLink() {
+  return (
+    <a
+      href="/privacy"
+      className="mt-3 block text-[10px] text-slate-600 hover:text-slate-400"
+    >
+      개인정보 처리방침
+    </a>
   );
 }
 

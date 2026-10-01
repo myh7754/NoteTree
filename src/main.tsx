@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import { ShowcaseViewer } from './ShowcaseViewer';
 import { useAuth } from './hooks/useAuth';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { parseRoute } from './utils/route';
 import './index.css';
 
 /**
@@ -13,6 +15,8 @@ import './index.css';
  */
 function Root() {
   const { session, ready, cloudEnabled } = useAuth();
+  // 처리방침은 로그인 확인을 기다리지 않는다 — 누구에게나, 언제나 보여야 하는 고지다.
+  if (parseRoute(location.pathname).kind === 'privacy') return <PrivacyPolicy />;
   if (!ready) return null;
   if (cloudEnabled && !session) return <ShowcaseViewer />;
   const userId = session?.user.id ?? null;
