@@ -4,7 +4,7 @@
  * 내용은 "지금 실제로 하는 처리"만 적는다 — 아직 붙이지 않은 도구를 미리 적어두면 사실과
  * 다른 고지가 된다. 도구를 붙이거나 떼는 날 이 파일도 같이 고친다.
  */
-const UPDATED = '2026-10-01';
+const UPDATED = '2026-10-02';
 const CONTACT = 'myh4755@gmail.com';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -29,7 +29,7 @@ export function PrivacyPolicy() {
         <Section title="1. 수집하는 항목">
           <ul className="list-disc space-y-1 pl-5">
             <li>
-              <b className="text-slate-200">계정 정보</b> — GitHub 로그인 과정에서 제공되는
+              <b className="text-slate-200">계정 정보</b> — GitHub 또는 Google 로그인 과정에서 제공되는
               이메일과 프로필 정보. 비밀번호는 저장하지 않습니다.
             </li>
             <li>
@@ -95,6 +95,11 @@ export function PrivacyPolicy() {
                 <tr>
                   <td className="border border-slate-700 px-2 py-1">GitHub</td>
                   <td className="border border-slate-700 px-2 py-1">로그인 인증, 백업 보관</td>
+                  <td className="border border-slate-700 px-2 py-1">미국</td>
+                </tr>
+                <tr>
+                  <td className="border border-slate-700 px-2 py-1">Google</td>
+                  <td className="border border-slate-700 px-2 py-1">로그인 인증</td>
                   <td className="border border-slate-700 px-2 py-1">미국</td>
                 </tr>
                 <tr>

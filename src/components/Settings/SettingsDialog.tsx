@@ -385,7 +385,7 @@ function AccountTab() {
 
   return (
     <div className="space-y-5">
-      <Row label="계정" hint="GitHub 로그인으로 연결된 계정입니다.">
+      <Row label="계정" hint="로그인에 쓴 GitHub 또는 Google 계정입니다.">
         <div className="truncate text-xs text-slate-300">{session.user.email ?? '이메일 없음'}</div>
       </Row>
 
