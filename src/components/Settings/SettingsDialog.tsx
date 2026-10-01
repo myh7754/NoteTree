@@ -14,6 +14,7 @@ import {
 import { handleUrl, mapUrl } from '../../utils/publish';
 import { track } from '../../lib/analytics';
 import { HandleForm } from '../Toolbar/HandleForm';
+import { MAP_THEMES } from '../../utils/mapTheme';
 
 /**
  * 설정창.
@@ -91,6 +92,8 @@ export function SettingsDialog() {
 function ScreenTab() {
   const side = useMindMapStore((s) => s.notePanelSide);
   const setSide = useMindMapStore((s) => s.setNotePanelSide);
+  const theme = useMindMapStore((s) => s.mapTheme);
+  const setTheme = useMindMapStore((s) => s.setMapTheme);
   const width = useMindMapStore((s) => s.noteDrawerWidth);
   const setWidth = useMindMapStore((s) => s.setNoteDrawerWidth);
   const setShortcutsOpen = useMindMapStore((s) => s.setShortcutsOpen);
@@ -98,6 +101,23 @@ function ScreenTab() {
 
   return (
     <div className="space-y-5">
+      <Row label="맵 모양" hint="노드와 선을 그리는 방식. 내용은 바뀌지 않습니다. 이 브라우저에만 저장됩니다.">
+        <div className="flex flex-wrap gap-1">
+          {MAP_THEMES.map((t) => (
+            <button
+              key={t.id}
+              className={`rounded px-3 py-1.5 text-xs ${
+                theme === t.id ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+              aria-pressed={theme === t.id}
+              onClick={() => setTheme(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </Row>
+
       <Row label="노트 패널 위치" hint="노트 창을 화면 어느 쪽에 붙일지. 이 브라우저에만 저장됩니다.">
         <div className="flex gap-1">
           {(['left', 'right'] as const).map((s) => (

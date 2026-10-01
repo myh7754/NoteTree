@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { readMapTheme, type MapTheme } from '../utils/mapTheme';
 import { temporal } from 'zundo';
 import { applyNodeChanges, applyEdgeChanges, type NodeChange, type EdgeChange } from '@xyflow/react';
 import type { MindNode, MindMapData, MindMapNode, MindMapEdge, SaveStatus } from '../types';
@@ -222,6 +223,8 @@ interface MindMapStoreState {
   publishRevision: number;
   /** 노트 패널을 어느 쪽에 붙일지. 이 기기의 취향이라 맵 데이터가 아니라 localStorage에 둔다. */
   notePanelSide: 'left' | 'right';
+  /** 맵 모양(노드·선을 그리는 방식). 이것도 이 기기의 취향이라 localStorage에 둔다. */
+  mapTheme: MapTheme;
   // 자동 저장 상태. 실패를 조용히 넘기지 않고 화면에 드러내기 위한 것.
   saveStatus: SaveStatus;
   saveError: string | null;
@@ -264,6 +267,7 @@ interface MindMapStoreActions {
   setSettingsOpen: (open: boolean) => void;
   bumpPublishRevision: () => void;
   setNotePanelSide: (side: 'left' | 'right') => void;
+  setMapTheme: (theme: MapTheme) => void;
   setSaveStatus: (status: SaveStatus, error?: string | null, savedAt?: number) => void;
   setExternalChange: (value: boolean) => void;
   openNoteDrawer: (nodeId: string) => void;
@@ -307,6 +311,7 @@ export const useMindMapStore = create<MindMapStore>()(
       isSettingsOpen: false,
       publishRevision: 0,
       notePanelSide: localStorage.getItem('note-panel-side') === 'left' ? 'left' : 'right',
+      mapTheme: readMapTheme(localStorage.getItem('map-theme')),
       saveStatus: 'idle',
       saveError: null,
       lastSavedAt: null,
@@ -669,6 +674,11 @@ export const useMindMapStore = create<MindMapStore>()(
       setNotePanelSide: (side) => {
         localStorage.setItem('note-panel-side', side);
         set({ notePanelSide: side });
+      },
+
+      setMapTheme: (theme) => {
+        localStorage.setItem('map-theme', theme);
+        set({ mapTheme: theme });
       },
 
       setNoteDrawerWidth: (width) => {

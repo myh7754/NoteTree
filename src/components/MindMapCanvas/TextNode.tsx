@@ -4,17 +4,22 @@ import type { MindMapNode } from '../../types';
 import { useMindMapStore } from '../../store/useMindMapStore';
 import { hasNoteContent } from '../../utils/noteText';
 import { NoteIconButton } from './NoteIconButton';
+import { nodeLook, treeMeta } from '../../utils/mapTheme';
 
 export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps<MindMapNode>) {
   const [label, setLabel] = useState(data.label);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { updateNodeLabel, toggleCollapse, openNoteDrawer, deleteNode, mindMapData, editingNodeId, setEditingNodeId, readOnly } =
+  const { updateNodeLabel, toggleCollapse, openNoteDrawer, deleteNode, mindMapData, editingNodeId, setEditingNodeId, readOnly, mapTheme } =
     useMindMapStore();
 
   // 편집 상태는 스토어가 단일 출처: 더블클릭/F2/Tab·Enter(생성 직후) 모두 여기로 모인다.
   const editing = editingNodeId === id;
   const hasChildren = (mindMapData.children[id] ?? []).length > 0;
   const noted = hasNoteContent(data.note);
+  const meta = treeMeta(mindMapData.rootId, mindMapData.children);
+  const look = nodeLook(mapTheme, meta.depth.get(id) ?? 0, meta.branch.get(id) ?? -1, data.style?.color);
+  // 밑줄형은 선이 밑줄로 이어지도록 연결점을 아래로 내린다
+  const handleStyle = look.anchor === 'bottom' ? { top: 'calc(100% + 1px)' } : undefined;
 
   useEffect(() => {
     setLabel(data.label);
@@ -41,18 +46,13 @@ export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps
 
   return (
     <div
-      className={`relative group flex items-center gap-1 px-3 py-2 rounded-lg border text-sm font-medium select-none ${
-        selected ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-slate-950' : ''
-      }`}
-      style={{
-        background: data.style?.color ?? '#1e293b',
-        borderColor: data.style?.color ? data.style.color + '80' : '#334155',
-        color: '#e2e8f0',
-        minWidth: 120,
-      }}
+      className={`relative group flex items-center gap-1 select-none ${
+        look.plain ? 'hover:bg-slate-800/70' : ''
+      } ${selected ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-slate-950' : ''}`}
+      style={look.style}
       onDoubleClick={() => !readOnly && setEditingNodeId(id)}
     >
-      <Handle type="target" position={Position.Left} className="!opacity-0" />
+      <Handle type="target" position={Position.Left} className="!opacity-0" style={handleStyle} />
 
       {editing ? (
         <input
@@ -115,7 +115,7 @@ export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps
         </button>
       )}
 
-      <Handle type="source" position={Position.Right} className="!opacity-0" />
+      <Handle type="source" position={Position.Right} className="!opacity-0" style={handleStyle} />
     </div>
   );
 });
