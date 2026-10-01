@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { track } from '../../lib/analytics';
 import { useMindMapStore } from '../../store/useMindMapStore';
 import { noteToPlainText } from '../../utils/noteText';
 
@@ -62,6 +63,22 @@ export function SearchPanel() {
     setQuery(value);
     setCursor(0);
   };
+
+  // 검색은 글자마다 결과가 바뀐다. 타이핑마다 보내면 지표가 "검색 횟수"가 아니라
+  // "타이핑 횟수"가 되므로, 창을 닫을 때 마지막 결과만 한 번 보낸다.
+  // 검색어 자체는 보내지 않는다 (공부 내용이 그대로 드러난다).
+  const latest = useRef({ query: '', count: 0 });
+  // 열려 있는 동안에만 갱신한다. 닫히는 렌더에서는 hits가 이미 비어 있어,
+  // 그때 덮어쓰면 "결과 0건"으로 잘못 기록된다.
+  useEffect(() => {
+    if (isSearchOpen) latest.current = { query, count: hits.length };
+  });
+  useEffect(() => {
+    if (isSearchOpen) return;
+    if (!latest.current.query.trim()) return;
+    track('search_used', { result_count: latest.current.count });
+    latest.current = { query: '', count: 0 }; // 다시 열고 그냥 닫을 때 중복 전송 방지
+  }, [isSearchOpen]);
 
   const jumpTo = (id: string) => {
     const store = useMindMapStore.getState();

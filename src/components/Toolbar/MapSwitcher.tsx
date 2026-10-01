@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { MapSummary } from '../../types';
 import { useMindMapStore, createEmptyMindMap } from '../../store/useMindMapStore';
 import { listMaps, loadMindMap, deleteMap, saveMindMap } from '../../db/mindmapDB';
+import { track } from '../../lib/analytics';
 
 function formatDate(ts: number): string {
   if (!ts) return '';
@@ -50,7 +51,9 @@ export function MapSwitcher() {
   const createNew = async () => {
     setIsOpen(false);
     await flushCurrent();
-    openMap(createEmptyMindMap('새 과목'), {});
+    const fresh = createEmptyMindMap('새 과목');
+    openMap(fresh, {});
+    track('map_created', { map_id: fresh.id });
   };
 
   const remove = async (id: string) => {

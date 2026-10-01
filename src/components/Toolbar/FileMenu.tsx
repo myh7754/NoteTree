@@ -5,6 +5,7 @@ import { exportToMarkdown } from '../../utils/exportMarkdown';
 import { downloadJson, loadJsonFile } from '../../utils/exportJson';
 import { importFromMarkdown, pickTextFile } from '../../utils/importMarkdown';
 import { exportToPng } from '../../utils/exportImage';
+import { track } from '../../lib/analytics';
 
 /**
  * 파일 입출력 메뉴.
@@ -36,6 +37,15 @@ export function FileMenu() {
     } catch (e) {
       fail(e);
     }
+  };
+
+  // 내보내기 3종의 공통 래퍼. 성공한 것만 센다 — 실패한 시도까지 "썼다"고 세면
+  // 지표가 사실과 달라진다.
+  const exported = <T,>(format: 'json' | 'markdown' | 'png', fn: () => T): T => {
+    const result = fn();
+    if (result instanceof Promise) result.then(() => track('export_used', { format }));
+    else track('export_used', { format });
+    return result;
   };
 
   const handleExportMarkdown = () => {
@@ -72,13 +82,13 @@ export function FileMenu() {
           <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
           <div className="absolute top-full right-0 mt-1 z-40 w-52 rounded-lg border border-slate-700 bg-slate-900 shadow-xl py-1">
             <Item icon="📂" label="열기" onClick={() => run(handleLoadJson)} />
-            <Item icon="💾" label="JSON 저장" onClick={() => run(() => downloadJson(mindMapData))} />
+            <Item icon="💾" label="JSON 저장" onClick={() => run(() => exported('json', () => downloadJson(mindMapData)))} />
 
             <div className="my-1 border-t border-slate-800" />
 
             <Item icon="📥" label="MD 가져오기" onClick={() => run(handleImportMarkdown)} />
-            <Item icon="↓" label="MD 내보내기" onClick={() => run(handleExportMarkdown)} />
-            <Item icon="🖼" label="PNG로 저장" onClick={() => run(() => exportToPng(rfNodes, mindMapData.title))} />
+            <Item icon="↓" label="MD 내보내기" onClick={() => run(() => exported('markdown', handleExportMarkdown))} />
+            <Item icon="🖼" label="PNG로 저장" onClick={() => run(() => exported('png', () => exportToPng(rfNodes, mindMapData.title)))} />
           </div>
         </>
       )}

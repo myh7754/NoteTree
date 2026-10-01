@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { captureError } from '../lib/sentry';
 
 interface Props {
   children: ReactNode;
@@ -28,6 +29,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[ErrorBoundary]', error, info.componentStack);
+    // 여기서 잡힌 에러는 화면이 안내문으로 바뀌어 사용자가 신고하지 않는다.
+    // 올리지 않으면 영영 모른다 — 이 경계가 가장 중요한 수집 지점이다.
+    captureError(error, { boundary: this.props.label ?? 'unknown' });
   }
 
   handleRetry = () => {

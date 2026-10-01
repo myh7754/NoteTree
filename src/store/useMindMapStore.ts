@@ -4,6 +4,7 @@ import { applyNodeChanges, applyEdgeChanges, type NodeChange, type EdgeChange } 
 import type { MindNode, MindMapData, MindMapNode, MindMapEdge, SaveStatus } from '../types';
 import { applyTreeLayout } from '../utils/layout';
 import { nanoid } from 'nanoid';
+import { track } from '../lib/analytics';
 
 // ─── 초기 데이터 ──────────────────────────────────────────────
 const ROOT_ID = 'root';
@@ -318,6 +319,12 @@ export const useMindMapStore = create<MindMapStore>()(
           mindMapData: newData,
           selectedNodeId: newId,
           ...project(newData, positions, newId, rfNodes, true),
+        });
+        // 노드 추가는 호출 경로가 여러 개다(캔버스·단축키·형제 추가). 전부 여기를 지나므로
+        // 수집도 여기 한 곳에 둔다. 라벨은 보내지 않는다 — 깊이와 맵 id만.
+        track('node_added', {
+          map_id: newData.id,
+          depth: (buildTreeIndex(newData.rootId, newData.children).depth.get(newId) ?? 0),
         });
         return newId;
       },

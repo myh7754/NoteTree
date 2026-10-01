@@ -5,7 +5,14 @@ import { ShowcaseViewer } from './ShowcaseViewer';
 import { useAuth } from './hooks/useAuth';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { parseRoute } from './utils/route';
+import { initSentry } from './lib/sentry';
+import { initAnalytics, identify } from './lib/analytics';
+import { Analytics } from '@vercel/analytics/react';
 import './index.css';
+
+// 앱보다 먼저 켠다 — 초기화 중에 터진 에러도 잡으려면 가장 앞이어야 한다.
+initSentry();
+initAnalytics();
 
 /**
  * 누가 보느냐로 화면이 갈린다.
@@ -15,6 +22,11 @@ import './index.css';
  */
 function Root() {
   const { session, ready, cloudEnabled } = useAuth();
+  // 분석 도구에 넘기는 식별자는 UUID 하나뿐이다. 이메일·이름은 넘기지 않는다.
+  const uid = session?.user.id;
+  React.useEffect(() => {
+    if (uid) identify(uid);
+  }, [uid]);
   // 처리방침은 로그인 확인을 기다리지 않는다 — 누구에게나, 언제나 보여야 하는 고지다.
   if (parseRoute(location.pathname).kind === 'privacy') return <PrivacyPolicy />;
   if (!ready) return null;
@@ -27,5 +39,7 @@ function Root() {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Root />
+    {/* 방문자 수. 쿠키를 쓰지 않아 동의 배너가 필요 없다. */}
+    <Analytics />
   </React.StrictMode>
 );

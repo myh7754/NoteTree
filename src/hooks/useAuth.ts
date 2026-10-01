@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase, isCloudEnabled } from '../db/supabase';
+import { resetIdentity } from '../lib/analytics';
 
 export interface AuthState {
   session: Session | null;
@@ -60,4 +61,6 @@ export async function signInWith(provider: 'github' | 'google'): Promise<void> {
 export async function signOut(): Promise<void> {
   if (!supabase) return;
   await supabase.auth.signOut();
+  // 식별자를 끊지 않으면 같은 브라우저의 다음 사용자가 앞 사람으로 집계된다.
+  resetIdentity();
 }
