@@ -243,6 +243,7 @@ interface MindMapStoreActions {
   deleteNodes: (ids: string[]) => void;
   reparentNode: (nodeId: string, newParentId: string) => void;
   moveNode: (nodeId: string, newParentId: string, index: number) => void;
+  moveNodes: (nodeIds: string[], newParentId: string, index: number) => void;
   toggleCollapse: (id: string) => void;
   // 모두 펼치기(false) / 모두 접기(true). 루트는 접지 않는다.
   setAllCollapsed: (collapsed: boolean) => void;
@@ -373,40 +374,66 @@ export const useMindMapStore = create<MindMapStore>()(
 
       // nodeId를 newParentId의 children 중 index 위치로 이동.
       // 같은 부모 안에서도 동작하므로 형제 순서 변경(reorder)에 쓰인다.
-      moveNode: (nodeId, newParentId, index) => {
+      moveNode: (nodeId, newParentId, index) => get().moveNodes([nodeId], newParentId, index),
+
+      /**
+       * 여러 노드를 newParentId의 index 위치에 **주어진 순서대로** 옮긴다.
+       *
+       * 한 번의 상태 변경으로 처리한다 — 하나씩 moveNode를 부르면 되돌리기가 노드 수만큼
+       * 쪼개지고, 앞 노드가 들어가며 뒤 노드의 index가 밀린다.
+       *
+       * 선택에 부모와 자식이 같이 들어 있으면 자식은 뺀다. 자식은 부모를 따라 움직이므로,
+       * 따로 옮기면 부모에서 떨어져 나와 형제가 돼 버린다.
+       */
+      moveNodes: (nodeIds, newParentId, index) => {
         const { mindMapData, positions, selectedNodeId, rfNodes } = get();
         const { rootId, children } = mindMapData;
 
-        // 검증: 루트는 이동 불가 / 자기 자신에 붙일 수 없음
-        if (nodeId === rootId || nodeId === newParentId) return;
-        // 검증: 새 부모가 노드 자신의 후손이면 순환이 생기므로 금지
-        const subtree = collectSubtree(nodeId, children);
-        if (subtree.has(newParentId)) return;
-
-        const currentParent = findParent(nodeId, children);
-
-        const newChildren: Record<string, string[]> = { ...children };
-        // 기존 부모에서 제거
-        if (currentParent) {
-          newChildren[currentParent] = (newChildren[currentParent] ?? []).filter(
-            (c) => c !== nodeId
-          );
+        // 루트는 옮기지 않으므로 "따라갈 조상"으로도 치지 않는다. 안 그러면 루트를 같이
+        // 선택했을 때 모든 노드가 루트를 따라가는 것으로 계산돼 아무것도 안 옮겨진다.
+        const picked = new Set(nodeIds.filter((id) => id !== rootId));
+        const moving: string[] = [];
+        for (const id of nodeIds) {
+          if (id === rootId || moving.includes(id)) continue; // 루트는 이동 불가
+          let ancestor = findParent(id, children);
+          let riding = false; // 선택된 조상을 타고 가는가
+          while (ancestor) {
+            if (picked.has(ancestor)) {
+              riding = true;
+              break;
+            }
+            ancestor = findParent(ancestor, children);
+          }
+          if (!riding) moving.push(id);
         }
-        // 새 부모 배열에서도 (혹시 모를 중복 대비) 제거 후 index 위치에 삽입
-        const target = (newChildren[newParentId] ?? []).filter((c) => c !== nodeId);
+        if (moving.length === 0) return;
+
+        // 검증: 새 부모가 옮기는 노드 자신이거나 그 후손이면 순환이 생긴다.
+        // 하나라도 걸리면 전부 옮기지 않는다 — 일부만 옮기면 선택이 흩어진다.
+        for (const id of moving) {
+          if (collectSubtree(id, children).has(newParentId)) return;
+        }
+
+        const movingSet = new Set(moving);
+        const newChildren: Record<string, string[]> = { ...children };
+        // 기존 부모들에서 제거 (새 부모 안에 있던 것도 여기서 빠진다)
+        for (const [parentId, kids] of Object.entries(children)) {
+          if (kids.some((c) => movingSet.has(c))) {
+            newChildren[parentId] = kids.filter((c) => !movingSet.has(c));
+          }
+        }
+        const target = [...(newChildren[newParentId] ?? [])];
         const clamped = Math.max(0, Math.min(index, target.length));
-        target.splice(clamped, 0, nodeId);
+        target.splice(clamped, 0, ...moving);
         newChildren[newParentId] = target;
 
         // 변화 없음(같은 부모 + 같은 순서)이면 히스토리 노이즈 방지를 위해 종료
-        const prev = children[newParentId] ?? [];
-        if (
-          currentParent === newParentId &&
-          prev.length === target.length &&
-          prev.every((id, i) => id === target[i])
-        ) {
-          return;
-        }
+        const unchanged = Object.keys(newChildren).every((parentId) => {
+          const before = children[parentId] ?? [];
+          const after = newChildren[parentId];
+          return before.length === after.length && before.every((id, i) => id === after[i]);
+        });
+        if (unchanged) return;
 
         const newData = { ...mindMapData, children: newChildren };
         set({ mindMapData: newData, ...project(newData, positions, selectedNodeId, rfNodes, true) });

@@ -51,7 +51,7 @@ function Flow() {
     onRfEdgesChange,
     setSelectedNodeId,
     deleteNodes,
-    moveNode,
+    moveNodes,
     syncRfFromData,
     mindMapData,
     focusRequest,
@@ -101,6 +101,10 @@ function Flow() {
 
   // 드래그 중인 노드 + 드롭 결정(부모/삽입 인덱스). 렌더(슬롯·간선)에 사용.
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  // 같이 끌려가는 노드들 (여러 개를 선택해 끌 때). 선택에 부모와 자식이 같이 있으면
+  // 부모만 든다 — 자식은 부모를 따라간다.
+  const [movingIds, setMovingIds] = useState<string[]>([]);
+  const movingRef = useRef<string[]>([]);
   const [drop, setDrop] = useState<Drop | null>(null);
   // 드래그되는 노드의 후손 집합 (새 부모 후보에서 제외해 순환 방지)
   const subtreeRef = useRef<Set<string>>(new Set());
@@ -157,28 +161,47 @@ function Flow() {
       const isChildDrop = nearest === rootId || a.x > nr.x + nr.w * 0.5;
 
       if (isChildDrop) {
-        const sibs = (children[nearest] ?? []).filter((id) => id !== node.id);
+        const sibs = (children[nearest] ?? []).filter((id) => !subtreeRef.current.has(id));
         return { parentId: nearest, index: indexByY(sibs) };
       }
       const np = findParentId(nearest, children);
       if (np === null || subtreeRef.current.has(np)) {
         // 대상이 루트(부모 없음)이거나 순환이면 대상의 자식으로 처리
-        const sibs = (children[nearest] ?? []).filter((id) => id !== node.id);
+        const sibs = (children[nearest] ?? []).filter((id) => !subtreeRef.current.has(id));
         return { parentId: nearest, index: indexByY(sibs) };
       }
-      const sibs = (children[np] ?? []).filter((id) => id !== node.id);
+      const sibs = (children[np] ?? []).filter((id) => !subtreeRef.current.has(id));
       return { parentId: np, index: indexByY(sibs) };
     },
     [mindMapData]
   );
 
+  /**
+   * 드래그 시작. `dragged`에는 같이 끌려가는 노드가 전부 들어 있다(여러 개 선택 시).
+   *
+   * 예전에는 손에 잡힌 노드 하나만 보고 나머지를 버려서, 여러 개를 끌어다 놓아도
+   * 하나만 옮겨졌다. 지금은 전부를 한 묶음으로 다룬다.
+   */
   const onNodeDragStart = useCallback(
-    (_: unknown, node: Node) => {
+    (_: unknown, node: Node, dragged: Node[] = [node]) => {
       const { rootId, children } = mindMapData;
-      if (node.id === rootId) return; // 루트는 재배치 불가
-      // 자기 자신 + 후손 모음 (서브트리는 통째로 따라 움직이며, 후보에서 제외해 순환 방지)
+      const ids = [...new Set([node.id, ...dragged.map((n) => n.id)])].filter((id) => id !== rootId);
+      if (ids.length === 0) return; // 루트는 재배치 불가
+
+      // 선택된 조상을 타고 가는 노드는 뺀다 (부모만 옮기면 자식은 따라온다)
+      const picked = new Set(ids);
+      const tops = ids.filter((id) => {
+        let p = findParentId(id, children);
+        while (p) {
+          if (picked.has(p)) return false;
+          p = findParentId(p, children);
+        }
+        return true;
+      });
+
+      // 옮기는 노드들 + 그 후손 전부 (통째로 따라 움직이며, 후보에서 제외해 순환 방지)
       const subtree = new Set<string>();
-      const queue = [node.id];
+      const queue = [...tops];
       while (queue.length > 0) {
         const cur = queue.shift()!;
         subtree.add(cur);
@@ -193,7 +216,11 @@ function Flow() {
         snap.set(n.id, { x: n.position.x, y: n.position.y, w, h, cy: n.position.y + h / 2 });
       }
       rectsRef.current = snap;
-      setDraggingId(node.id);
+      // 화면에 보이던 위→아래 순서를 유지한 채 옮긴다
+      tops.sort((x, y) => (snap.get(x)?.cy ?? 0) - (snap.get(y)?.cy ?? 0));
+      movingRef.current = tops;
+      setMovingIds(tops);
+      setDraggingId(node.id === rootId ? tops[0] : node.id);
     },
     [mindMapData, getNodes]
   );
@@ -207,19 +234,38 @@ function Flow() {
     [computeDrop]
   );
 
-  const onNodeDragStop = useCallback(
-    (_: unknown, node: Node) => {
-      const d = dropRef.current;
-      setDraggingId(null);
-      setDrop(null);
-      dropRef.current = null;
-      if (d) {
-        moveNode(node.id, d.parentId, d.index); // 부모/순서 변경 + 자동 재정렬 (자식도 함께 이동)
-      }
-      // 모든 경우에 격자로 스냅백 (자유 위치로 멈추지 않음)
-      syncRfFromData();
+  const onNodeDragStop = useCallback(() => {
+    const d = dropRef.current;
+    const moving = movingRef.current;
+    setDraggingId(null);
+    setMovingIds([]);
+    movingRef.current = [];
+    setDrop(null);
+    dropRef.current = null;
+    if (d && moving.length > 0) {
+      // 부모/순서 변경 + 자동 재정렬 (자식도 함께 이동). 여러 개여도 되돌리기는 한 번이다.
+      moveNodes(moving, d.parentId, d.index);
+    }
+    // 모든 경우에 격자로 스냅백 (자유 위치로 멈추지 않음)
+    syncRfFromData();
+  }, [moveNodes, syncRfFromData]);
+
+  // 드래그로 영역을 잡아 여러 개를 고른 뒤 그 묶음을 끌면, React Flow는 노드 드래그가
+  // 아니라 "선택 드래그" 이벤트를 보낸다. 같은 동작으로 이어 준다.
+  // 기준 노드는 묶음에서 가장 위에 있는 것으로 삼는다.
+  const anchorOf = (nodes: Node[]) =>
+    [...nodes].sort((a, b) => a.position.y - b.position.y)[0];
+  const onSelectionDragStart = useCallback(
+    (e: unknown, nodes: Node[]) => {
+      if (nodes.length > 0) onNodeDragStart(e, anchorOf(nodes), nodes);
     },
-    [moveNode, syncRfFromData]
+    [onNodeDragStart]
+  );
+  const onSelectionDrag = useCallback(
+    (e: unknown, nodes: Node[]) => {
+      if (nodes.length > 0) onNodeDrag(e, anchorOf(nodes));
+    },
+    [onNodeDrag]
   );
 
   // 드래그 중: 끄는 노드는 반투명, index 이후 형제는 아래로 밀어 슬롯 공간 확보.
@@ -230,22 +276,23 @@ function Flow() {
     const dragged = byId.get(draggingId);
     const gh = dragged?.measured?.height ?? dragged?.height ?? 40;
     const shift = gh + SLOT_GAP;
-    const sibIds = (mindMapData.children[drop.parentId] ?? []).filter((id) => id !== draggingId);
+    const moving = new Set(movingIds);
+    const sibIds = (mindMapData.children[drop.parentId] ?? []).filter((id) => !moving.has(id));
     const shiftSet = new Set(sibIds.slice(drop.index));
     return rfNodes.map((n) => {
-      if (n.id === draggingId) return { ...n, className: 'rf-dragging' };
+      if (n.id === draggingId || moving.has(n.id)) return { ...n, className: 'rf-dragging' };
       if (shiftSet.has(n.id)) {
         return { ...n, position: { x: n.position.x, y: n.position.y + shift } };
       }
       return n;
     });
-  }, [rfNodes, draggingId, drop, mindMapData.children]);
+  }, [rfNodes, draggingId, movingIds, drop, mindMapData.children]);
 
   // 드래그 중: 끄는 노드의 기존 들어오는 간선만 숨긴다 (미리보기는 오버레이로 따로 그림)
   const edges = useMemo<MindMapEdge[]>(() => {
     if (!draggingId || !drop) return rfEdges;
-    return rfEdges.filter((e) => e.target !== draggingId);
-  }, [rfEdges, draggingId, drop]);
+    return rfEdges.filter((e) => e.target !== draggingId && !movingIds.includes(e.target));
+  }, [rfEdges, draggingId, movingIds, drop]);
 
   // 정렬된 미리보기 기하: 슬롯 박스 위치/크기 + 부모→슬롯 베지어 경로 (flow 좌표)
   const preview = useMemo(() => {
@@ -300,6 +347,9 @@ function Flow() {
       onNodeDragStart={onNodeDragStart}
       onNodeDrag={onNodeDrag}
       onNodeDragStop={onNodeDragStop}
+      onSelectionDragStart={onSelectionDragStart}
+      onSelectionDrag={onSelectionDrag}
+      onSelectionDragStop={onNodeDragStop}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       fitView
