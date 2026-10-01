@@ -234,6 +234,7 @@ function PublishTab() {
   };
 
   const publicCount = data.maps.filter((m) => m.isPublic).length;
+  const allPublic = data.maps.length > 0 && publicCount === data.maps.length;
 
   return (
     <div className="space-y-5">
@@ -262,26 +263,39 @@ function PublishTab() {
           </p>
         ) : (
           <>
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            {!confirmingAll ? (
-              <>
+          {/* 전체 토글. 전부 공개일 때만 켜진 것으로 보인다 — 일부만 공개인데 켜진 것처럼
+              보이면 "다 공개했다"고 오해한다. */}
+          <div className="mb-2 rounded-lg border border-slate-800 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1 text-xs font-medium text-slate-200">전체 공개</div>
+              {publicCount > 0 && !allPublic && (
                 <button
-                  className="rounded bg-slate-800 px-2.5 py-1 text-[11px] text-slate-200 hover:bg-slate-700 disabled:opacity-40"
-                  onClick={() => setConfirmingAll(true)}
-                  disabled={busyId !== null || data.handle === null || publicCount === data.maps.length}
-                >
-                  전체 공개
-                </button>
-                <button
-                  className="rounded bg-slate-800 px-2.5 py-1 text-[11px] text-slate-200 hover:bg-slate-700 disabled:opacity-40"
+                  className="text-[10px] text-slate-500 hover:text-slate-300 disabled:opacity-40"
                   onClick={() => setAll(false)}
-                  disabled={busyId !== null || publicCount === 0}
+                  disabled={busyId !== null}
                 >
-                  전체 비공개
+                  모두 끄기
                 </button>
-              </>
-            ) : (
-              <>
+              )}
+              <button
+                role="switch"
+                aria-checked={allPublic}
+                aria-label="전체 공개"
+                disabled={busyId !== null || data.handle === null}
+                onClick={() => (allPublic ? setAll(false) : setConfirmingAll(true))}
+                className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors disabled:opacity-40 ${
+                  allPublic ? 'bg-emerald-600' : 'bg-slate-700'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
+                    allPublic ? 'left-[18px]' : 'left-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+            {confirmingAll && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="text-[11px] text-amber-300">
                   비공개인 맵 {data.maps.length - publicCount}개가 모두 공개됩니다.
                 </span>
@@ -297,7 +311,7 @@ function PublishTab() {
                 >
                   취소
                 </button>
-              </>
+              </div>
             )}
           </div>
           <ul className="divide-y divide-slate-800 rounded-lg border border-slate-800">

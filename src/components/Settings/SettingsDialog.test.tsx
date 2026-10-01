@@ -176,11 +176,19 @@ describe('SettingsDialog 공개 탭', () => {
   });
 });
 
-describe('SettingsDialog 전체 공개 / 전체 비공개', () => {
-  it('전체 공개는 한 번 눌러서는 실행되지 않는다 (확인 단계)', async () => {
+describe('SettingsDialog 전체 공개 토글', () => {
+  const master = () => screen.getByRole('switch', { name: '전체 공개' });
+
+  it('일부만 공개면 꺼진 것으로 보인다 — 켜져 보이면 다 공개했다고 오해한다', async () => {
     render(<SettingsDialog />);
     await openPublishTab();
-    fireEvent.click(screen.getByText('전체 공개'));
+    expect(master()).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('켜려고 누르면 바로 실행되지 않고 한 번 더 묻는다', async () => {
+    render(<SettingsDialog />);
+    await openPublishTab();
+    fireEvent.click(master());
     expect(setMapPublic).not.toHaveBeenCalled();
     expect(screen.getByText(/비공개인 맵 1개가 모두 공개됩니다/)).toBeInTheDocument();
   });
@@ -188,7 +196,7 @@ describe('SettingsDialog 전체 공개 / 전체 비공개', () => {
   it('확인하면 비공개였던 맵만 켠다 — 동기화는 한 번만', async () => {
     render(<SettingsDialog />);
     await openPublishTab();
-    fireEvent.click(screen.getByText('전체 공개'));
+    fireEvent.click(master());
     fireEvent.click(screen.getByText('모두 공개'));
     await waitFor(() => expect(setMapPublic).toHaveBeenCalledTimes(1));
     expect(setMapPublic).toHaveBeenCalledWith('b', 'DB', true);
@@ -198,19 +206,33 @@ describe('SettingsDialog 전체 공개 / 전체 비공개', () => {
   it('취소하면 아무것도 바뀌지 않는다', async () => {
     render(<SettingsDialog />);
     await openPublishTab();
-    fireEvent.click(screen.getByText('전체 공개'));
+    fireEvent.click(master());
     fireEvent.click(screen.getByText('취소'));
     expect(setMapPublic).not.toHaveBeenCalled();
-    expect(screen.getByText('전체 공개')).toBeInTheDocument();
+    expect(screen.queryByText('모두 공개')).not.toBeInTheDocument();
   });
 
-  it('전체 비공개는 공개 중인 맵만 끄고 동기화하지 않는다', async () => {
+  it('전부 공개일 때 누르면 전부 끈다 (확인 없이, 동기화 없이)', async () => {
+    listMyMapsPublish.mockResolvedValue([
+      { id: 'a', title: '자바', isPublic: true, slug: 's1' },
+      { id: 'b', title: 'DB', isPublic: true, slug: 's2' },
+    ]);
     render(<SettingsDialog />);
     await openPublishTab();
-    fireEvent.click(screen.getByText('전체 비공개'));
+    expect(master()).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(master());
+    await waitFor(() => expect(setMapPublic).toHaveBeenCalledTimes(2));
+    expect(setMapPublic).toHaveBeenCalledWith('a', '자바', false);
+    expect(setMapPublic).toHaveBeenCalledWith('b', 'DB', false);
+    expect(syncNow).not.toHaveBeenCalled();
+  });
+
+  it('일부만 공개일 때는 "모두 끄기"로 공개 중인 것만 끈다', async () => {
+    render(<SettingsDialog />);
+    await openPublishTab();
+    fireEvent.click(screen.getByText('모두 끄기'));
     await waitFor(() => expect(setMapPublic).toHaveBeenCalledTimes(1));
     expect(setMapPublic).toHaveBeenCalledWith('a', '자바', false);
-    expect(syncNow).not.toHaveBeenCalled();
   });
 
   it('중간에 실패해도 목록을 다시 읽어 실제 상태를 보여준다', async () => {
@@ -223,16 +245,16 @@ describe('SettingsDialog 전체 공개 / 전체 비공개', () => {
       .mockRejectedValueOnce(new Error('두 번째에서 실패'));
     render(<SettingsDialog />);
     await openPublishTab();
-    fireEvent.click(screen.getByText('전체 공개'));
+    fireEvent.click(master());
     fireEvent.click(screen.getByText('모두 공개'));
     await waitFor(() => expect(useMindMapStore.getState().publishRevision).toBe(1));
     expect(setMapPublic).toHaveBeenCalledTimes(2);
   });
 
-  it('닉네임이 없으면 전체 공개가 잠긴다', async () => {
+  it('닉네임이 없으면 잠긴다', async () => {
     getMyHandle.mockResolvedValue(null);
     render(<SettingsDialog />);
     await openPublishTab();
-    expect(screen.getByText('전체 공개')).toBeDisabled();
+    expect(master()).toBeDisabled();
   });
 });

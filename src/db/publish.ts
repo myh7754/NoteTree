@@ -71,6 +71,51 @@ export async function loadPublicMapBySlug(slug: string): Promise<MindMapData | n
   return (data?.data as MindMapData) ?? null;
 }
 
+export interface PublicOwner {
+  handle: string;
+  /** 그 사람이 공개한 맵 전부 (지금 보고 있는 것 포함). 본문은 싣지 않는다. */
+  maps: { title: string; slug: string }[];
+}
+
+/**
+ * 공개 맵의 주인과, 그 사람이 공개한 다른 맵들.
+ *
+ * 뷰어에서 "이 사람의 다른 맵"으로 옮겨 다니기 위한 것이다. 링크 하나를 받은 사람이
+ * 그 사람이 공개한 나머지도 볼 수 있어야 한다 — 공개로 켰다는 건 보여주겠다는 뜻이다.
+ * 비공개 맵은 RLS가 걸러서 여기에 절대 섞이지 않는다.
+ */
+export async function loadPublicOwnerBySlug(slug: string): Promise<PublicOwner | null> {
+  if (!supabase) return null;
+  const { data: row } = await supabase
+    .from('maps')
+    .select('owner_id')
+    .eq('slug', slug)
+    .eq('is_public', true)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (!row) return null;
+
+  const [{ data: profile }, { data: maps }] = await Promise.all([
+    supabase.from('profiles').select('handle').eq('user_id', row.owner_id).maybeSingle(),
+    supabase
+      .from('maps')
+      .select('title, slug')
+      .eq('owner_id', row.owner_id)
+      .eq('is_public', true)
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false }),
+  ]);
+  if (!profile?.handle) return null;
+
+  return {
+    handle: profile.handle as string,
+    maps: (maps ?? []).map((m) => ({
+      title: (m.title as string) || '제목 없음',
+      slug: m.slug as string,
+    })),
+  };
+}
+
 /** 로그인한 본인의 닉네임. 아직 안 정했으면 null. */
 export async function getMyHandle(): Promise<string | null> {
   if (!supabase) return null;
