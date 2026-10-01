@@ -5,6 +5,7 @@ import { NodeStyleBar } from './NodeStyleBar';
 import { AccountMenu } from './AccountMenu';
 import { ViewMenu } from './ViewMenu';
 import { FileMenu } from './FileMenu';
+import { PublishMenu } from './PublishMenu';
 
 export function Toolbar() {
   const selectedNodeId = useMindMapStore((s) => s.selectedNodeId);
@@ -91,6 +92,7 @@ export function Toolbar() {
       <div className="flex-1" />
 
       <SaveStatus />
+      <PublishMenu />
       <AccountMenu />
 
       <div className="w-px h-5 bg-slate-700 mx-1" />

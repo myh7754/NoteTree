@@ -46,29 +46,58 @@ create policy "본인 맵만 삭제"
   using (auth.uid() = owner_id);
 
 -- ─────────────────────────────────────────────────────────────
--- 공개 계정(포트폴리오): 여기 등록된 계정의 맵은 로그인 없이 누구나 "읽는다".
+-- 공개 발행: 사용자가 직접 켠 맵만 로그인 없이 누구나 "읽는다".
 -- 수정·삭제 정책은 위의 "본인만" 그대로라 쓰기는 여전히 본인만 된다.
 -- (같은 동작의 정책이 여럿이면 OR로 합쳐진다 — select만 넓어진다)
 --
--- 등록: 본인 계정으로 앱에 한 번 로그인한 뒤 SQL Editor에서 실행
---   insert into public.showcase_owners (owner_id)
---   select id from auth.users where email = '본인 이메일';
+-- 2026-10-01에 showcase_owners(운영자 계정 하나만 공개)를 대체했다.
+-- 이전 절차는 migrations/2026-10-01-public-publishing.sql 참고.
 -- ─────────────────────────────────────────────────────────────
-create table if not exists public.showcase_owners (
-  owner_id uuid primary key references auth.users(id) on delete cascade
-);
-alter table public.showcase_owners enable row level security;
 
--- 쓰기 정책은 일부러 없다 → 앱(publishable 키)으로는 아무도 스스로를 공개 계정으로 못 올린다
-drop policy if exists "공개 계정 목록은 누구나 조회" on public.showcase_owners;
-create policy "공개 계정 목록은 누구나 조회"
-  on public.showcase_owners for select
+-- 닉네임. 공개 주소 /u/<handle> 의 근거.
+-- 이메일은 넣지 않는다 — 익명이 읽는 테이블이라 넣는 순간 공개된다.
+create table if not exists public.profiles (
+  user_id    uuid primary key references auth.users(id) on delete cascade,
+  handle     text not null unique,
+  created_at timestamptz not null default now()
+);
+alter table public.profiles enable row level security;
+
+drop policy if exists "닉네임은 누구나 조회" on public.profiles;
+create policy "닉네임은 누구나 조회"
+  on public.profiles for select
   using (true);
 
-drop policy if exists "공개 계정 맵은 누구나 조회" on public.maps;
-create policy "공개 계정 맵은 누구나 조회"
+drop policy if exists "본인 닉네임만 생성" on public.profiles;
+create policy "본인 닉네임만 생성"
+  on public.profiles for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "본인 닉네임만 수정" on public.profiles;
+create policy "본인 닉네임만 수정"
+  on public.profiles for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- 공개 여부와 주소.
+-- default false 가 이 설계에서 가장 중요한 한 줄이다 — 공개는 본인이 켜야 켜진다.
+alter table public.maps add column if not exists is_public boolean not null default false;
+alter table public.maps add column if not exists slug text;
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'maps_slug_key') then
+    alter table public.maps add constraint maps_slug_key unique (slug);
+  end if;
+end $$;
+
+-- /m/<슬러그> 조회용. 대부분의 행은 비공개이므로 공개된 것만 인덱스에 넣는다.
+create index if not exists maps_slug_idx on public.maps (slug) where is_public;
+
+drop policy if exists "공개 맵은 누구나 조회" on public.maps;
+create policy "공개 맵은 누구나 조회"
   on public.maps for select
-  using (owner_id in (select owner_id from public.showcase_owners));
+  using (is_public = true and deleted_at is null);
 
 -- ─────────────────────────────────────────────────────────────
 -- 보유 기간: 소프트 삭제한 맵을 30일 뒤 완전히 지운다 (2026-10-01 적용)

@@ -8,36 +8,46 @@ import { AccountMenu } from './components/Toolbar/AccountMenu';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useMindMapStore } from './store/useMindMapStore';
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
-import { loadShowcaseMaps } from './db/showcase';
+import { loadPublicMapBySlug } from './db/publish';
 
 const noop = () => {};
 
+/** 처음 보여줄 깊이. 전부 펼치면 글자가 안 읽히고, 다 접으면 볼 게 없다. */
+const INITIAL_DEPTH = 2;
+
 /**
- * 비로그인 방문자 화면 — 공개 계정의 공부 기록을 읽기전용으로 보여준다.
+ * 공개 맵 하나를 읽기전용으로 보여준다 (/m/<슬러그>).
  *
  * 안전은 readOnly 플래그가 아니라 "저장 경로가 없다"에 기댄다: 여기엔 useAutosave도
  * syncNow도 없다. 플래그를 빠뜨려 뭔가 바뀌어도 IndexedDB·DB 어디에도 쓰이지 않는다.
  */
-export function ShowcaseViewer() {
+export function PublicMapViewer({ slug }: { slug: string }) {
   const mindMapData = useMindMapStore((s) => s.mindMapData);
   const openMap = useMindMapStore((s) => s.openMap);
+  const expandToLevel = useMindMapStore((s) => s.expandToLevel);
   const setSearchOpen = useMindMapStore((s) => s.setSearchOpen);
   const setShortcutsOpen = useMindMapStore((s) => s.setShortcutsOpen);
 
-  const [maps, setMaps] = useState<MindMapData[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading');
+  const [map, setMap] = useState<MindMapData | null>(null);
 
   useEffect(() => {
     useMindMapStore.setState({ readOnly: true });
-    loadShowcaseMaps()
-      .then((list) => {
+    loadPublicMapBySlug(slug)
+      .then((found) => {
+        if (!found) {
+          setState('missing');
+          return;
+        }
         // 저장된 좌표는 쓰지 않는다 — 방문자는 항상 정돈된 배치를 본다
-        if (list[0]) openMap(list[0], {});
-        setMaps(list);
+        openMap(found, {});
+        expandToLevel(INITIAL_DEPTH);
+        setMap(found);
+        setState('ready');
       })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+      .catch(() => setState('error'));
     return () => useMindMapStore.setState({ readOnly: false });
-  }, [openMap]);
+  }, [slug, openMap, expandToLevel]);
 
   useGlobalShortcuts(noop, noop);
 
@@ -46,33 +56,24 @@ export function ShowcaseViewer() {
   return (
     <div className="flex flex-col h-full bg-slate-950">
       <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-slate-900 border-b border-slate-700 flex-shrink-0 whitespace-nowrap [&>*]:shrink-0">
-        <span className="text-indigo-400 font-semibold text-sm">🗺</span>
-        {maps && maps.length > 1 ? (
-          <select
-            className="bg-slate-800 text-sm font-semibold text-slate-200 rounded px-1.5 py-0.5 outline-none"
-            value={mindMapData.id}
-            onChange={(e) => {
-              const next = maps.find((m) => m.id === e.target.value);
-              if (next) openMap(next, {});
-            }}
-            aria-label="맵 선택"
-          >
-            {maps.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.title}
-              </option>
-            ))}
-          </select>
-        ) : (
-          maps?.[0] && <span className="text-sm font-semibold text-slate-200">{mindMapData.title}</span>
-        )}
+        <a href="/" className="text-indigo-400 font-semibold text-sm" title="홈으로">
+          🗺
+        </a>
+        {map && <span className="text-sm font-semibold text-slate-200">{mindMapData.title}</span>}
         {/* 편집이 안 되는 게 고장이 아니라 의도임을 알린다 */}
         <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700">
           읽기전용
         </span>
-        <button className={btn} onClick={() => setSearchOpen(true)} title="노드·노트 검색 (Ctrl+F)">
-          🔍 검색
-        </button>
+        {state === 'ready' && (
+          <>
+            <button className={btn} onClick={() => setSearchOpen(true)} title="노드·노트 검색 (Ctrl+F)">
+              🔍 검색
+            </button>
+            <button className={btn} onClick={() => expandToLevel(99)} title="접힌 가지를 모두 펼친다">
+              ⤢ 전체 펼치기
+            </button>
+          </>
+        )}
 
         <div className="flex-1" />
 
@@ -83,12 +84,16 @@ export function ShowcaseViewer() {
       </div>
 
       <div className="flex flex-1 min-h-0 relative">
-        {error ? (
+        {state === 'error' ? (
           <Message>맵을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</Message>
-        ) : maps === null ? (
+        ) : state === 'missing' ? (
+          <Message>
+            이 주소의 공개 맵이 없습니다.
+            <br />
+            <span className="text-slate-600">공개가 꺼졌거나 주소가 잘못됐을 수 있습니다.</span>
+          </Message>
+        ) : state === 'loading' ? (
           <Message>불러오는 중…</Message>
-        ) : maps.length === 0 ? (
-          <Message>아직 공개된 맵이 없습니다.</Message>
         ) : (
           <>
             <ErrorBoundary label="캔버스를 표시하지 못했습니다.">
@@ -105,5 +110,9 @@ export function ShowcaseViewer() {
 }
 
 function Message({ children }: { children: React.ReactNode }) {
-  return <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">{children}</div>;
+  return (
+    <div className="flex-1 flex items-center justify-center text-center text-slate-500 text-sm">
+      {children}
+    </div>
+  );
 }

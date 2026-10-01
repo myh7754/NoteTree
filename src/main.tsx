@@ -1,7 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
-import { ShowcaseViewer } from './ShowcaseViewer';
+import { PublicMapViewer } from './PublicMapViewer';
+import { PublicProfile } from './pages/PublicProfile';
+import { Intro } from './pages/Intro';
 import { useAuth } from './hooks/useAuth';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { parseRoute } from './utils/route';
@@ -15,10 +17,13 @@ initSentry();
 initAnalytics();
 
 /**
- * 누가 보느냐로 화면이 갈린다.
- * - 클라우드 켜짐 + 비로그인 → 공개 계정의 공부 기록을 읽기전용으로
- * - 로그인 → 내 계정의 맵을 편집 (계정마다 저장소가 따로)
- * - 클라우드 꺼짐(로컬 개발) → 지금까지처럼 브라우저 저장 앱
+ * 주소와 로그인 여부로 화면이 갈린다.
+ * - /privacy        처리방침 (누구에게나, 로그인 확인을 기다리지 않고)
+ * - /u/<닉네임>      그 사람이 공개한 맵 목록
+ * - /m/<슬러그>      공개 맵 하나 (읽기전용)
+ * - /  비로그인      서비스 소개
+ * - /  로그인        내 계정의 맵을 편집 (계정마다 저장소가 따로)
+ * - 클라우드 꺼짐    지금까지처럼 브라우저 저장 앱 (로컬 개발)
  */
 function Root() {
   const { session, ready, cloudEnabled } = useAuth();
@@ -27,10 +32,15 @@ function Root() {
   React.useEffect(() => {
     if (uid) identify(uid);
   }, [uid]);
-  // 처리방침은 로그인 확인을 기다리지 않는다 — 누구에게나, 언제나 보여야 하는 고지다.
-  if (parseRoute(location.pathname).kind === 'privacy') return <PrivacyPolicy />;
+
+  const route = parseRoute(location.pathname);
+  // 공개 화면과 처리방침은 로그인 확인을 기다리지 않는다 — 로그인 없이 보는 게 요점이다.
+  if (route.kind === 'privacy') return <PrivacyPolicy />;
+  if (route.kind === 'map') return <PublicMapViewer slug={route.slug} />;
+  if (route.kind === 'profile') return <PublicProfile handle={route.handle} />;
+
   if (!ready) return null;
-  if (cloudEnabled && !session) return <ShowcaseViewer />;
+  if (cloudEnabled && !session) return <Intro />;
   const userId = session?.user.id ?? null;
   // key: 계정이 바뀌면 이전 계정의 맵·undo·저장 타이머를 통째로 버리고 새로 시작한다
   return <App key={userId ?? 'local'} userId={userId} />;

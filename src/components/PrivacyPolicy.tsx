@@ -115,7 +115,23 @@ export function PrivacyPolicy() {
           </p>
         </Section>
 
-        <Section title="5. 이용자의 권리">
+        <Section title="5. 공개 발행">
+          <p>
+            모든 마인드맵은 <b className="text-slate-200">기본이 비공개</b>입니다. 이용자가 직접
+            공개로 켠 맵만 로그인하지 않은 사람도 링크로 볼 수 있으며, 언제든 다시 끌 수
+            있습니다.
+          </p>
+          <p>
+            공개 페이지에 이메일은 표시되지 않습니다. 드러나는 것은 이용자가 직접 정한
+            닉네임과 공개로 켠 맵의 내용뿐입니다.
+          </p>
+          <p className="text-xs text-slate-500">
+            공개를 끄면 그 뒤로는 링크로 볼 수 없지만, 공개 중에 다른 사람이 보거나 복사해 둔
+            내용까지 거둬들일 수는 없습니다.
+          </p>
+        </Section>
+
+        <Section title="6. 이용자의 권리">
           <p>
             언제든지 본인의 정보를 열람·수정·삭제할 수 있습니다. 계정 삭제는 로그인 후
             <b className="text-slate-200"> 계정 메뉴 → 회원 탈퇴</b>에서 직접 할 수 있고, 되돌릴 수
@@ -123,7 +139,7 @@ export function PrivacyPolicy() {
           </p>
         </Section>
 
-        <Section title="6. 쿠키와 유사 기술">
+        <Section title="7. 쿠키와 유사 기술">
           <p>
             광고·추적 목적의 쿠키는 쓰지 않습니다. 로그인 상태 유지와 화면 설정(노트 패널 위치 등)을
             위해 브라우저 저장소를 사용하며, 이 값은 이용자의 브라우저에만 남습니다.
@@ -134,7 +150,7 @@ export function PrivacyPolicy() {
           </p>
         </Section>
 
-        <Section title="7. 문의처">
+        <Section title="8. 문의처">
           <p>
             개인정보 보호 책임자: 운영자 ·{' '}
             <a className="text-indigo-400 hover:text-indigo-300" href={`mailto:${CONTACT}`}>
@@ -143,7 +159,7 @@ export function PrivacyPolicy() {
           </p>
         </Section>
 
-        <Section title="8. 변경 고지">
+        <Section title="9. 변경 고지">
           <p>내용이 바뀌면 이 페이지에 시행일과 함께 게시합니다.</p>
         </Section>
       </div>
