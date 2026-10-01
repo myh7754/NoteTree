@@ -8,13 +8,12 @@ import type { CSSProperties } from 'react';
  * 페이지 방문자는 주인이 고른 모양이 아니라 기본 모양으로 본다. 주인이 고른 모양을
  * 보여 줘야 하면 맵 데이터에 넣는다.
  */
-export type MapTheme = 'classic' | 'branch' | 'underline' | 'elbow';
+export type MapTheme = 'classic' | 'plain' | 'underline';
 
 export const MAP_THEMES: { id: MapTheme; label: string }[] = [
-  { id: 'classic', label: '기본' },
-  { id: 'branch', label: '가지 색' },
+  { id: 'classic', label: '상자' },
+  { id: 'plain', label: '글자만' },
   { id: 'underline', label: '밑줄' },
-  { id: 'elbow', label: '직각' },
 ];
 
 export const readMapTheme = (v: string | null): MapTheme =>
@@ -92,37 +91,7 @@ export function nodeLook(theme: MapTheme, depth: number, branch: number, custom?
 
   const c = custom ?? branchColor(branch);
 
-  // 세부 항목: 상자 없이 글자만. 직접 색을 칠했으면 그 색이 보이도록 옅은 상자를 준다.
-  const leaf: NodeLook = {
-    plain: !custom,
-    anchor: 'mid',
-    style: {
-      background: custom ? custom + '26' : undefined,
-      border: `1px solid ${custom ?? 'transparent'}`,
-      color: '#cbd5e1',
-      padding: '3px 8px',
-      borderRadius: 6,
-      ...text(13, 18, 400),
-    },
-  };
-
-  if (theme === 'elbow') {
-    if (depth >= 2) return leaf;
-    return {
-      plain: false,
-      anchor: 'mid',
-      style: {
-        background: custom ?? '#151c36',
-        border: depth === 0 ? '1.5px solid #818cf8' : `1px solid ${custom ?? '#3b4667'}`,
-        color: depth === 0 ? '#e0e7ff' : '#f1f5f9',
-        padding: depth === 0 ? '10px 18px' : '7px 12px',
-        borderRadius: 4,
-        ...(depth === 0 ? text(17, 24, 700) : text(14, 20, 600)),
-      },
-    };
-  }
-
-  // branch / underline 공통: 중심 주제는 크게 채운다
+  // 중심 주제는 어느 모양에서든 크게 채운다
   if (depth === 0) {
     return {
       plain: false,
@@ -138,32 +107,29 @@ export function nodeLook(theme: MapTheme, depth: number, branch: number, custom?
     };
   }
 
+  const top = depth === 1;
+  const font = top ? text(15, 20, 600) : text(13, 18, 400);
+  const color = top ? '#f8fafc' : '#cbd5e1';
+
   if (theme === 'underline') {
-    const top = depth === 1;
     return {
       plain: true,
       anchor: 'bottom',
-      style: {
-        borderBottom: `${top ? 3 : 1.5}px solid ${c}`,
-        color: top ? '#f8fafc' : '#cbd5e1',
-        padding: top ? '5px 6px' : '4px 6px',
-        ...(top ? text(15, 20, 600) : text(13, 18, 400)),
-      },
+      style: { borderBottom: `${top ? 3 : 1.5}px solid ${c}`, color, padding: top ? '5px 6px' : '4px 6px', ...font },
     };
   }
 
-  // branch
-  if (depth >= 2) return leaf;
+  // plain: 상자 없이 글자만. 직접 색을 칠했으면 그 색이 보이도록 옅은 상자를 준다.
   return {
-    plain: false,
+    plain: !custom,
     anchor: 'mid',
     style: {
-      background: c + '26',
-      border: `1.5px solid ${c}`,
-      color: '#f8fafc',
-      padding: '8px 14px',
-      borderRadius: 9,
-      ...text(15, 20, 600),
+      background: custom ? custom + '26' : undefined,
+      border: `1px solid ${custom ?? 'transparent'}`,
+      color,
+      padding: top ? '4px 8px' : '3px 8px',
+      borderRadius: 6,
+      ...font,
     },
   };
 }
@@ -181,16 +147,12 @@ export function edgeLook(
       width: depth === 0 ? 2 : depth === 1 ? 1.5 : 1,
     };
   }
-  if (theme === 'elbow') return { color: custom ?? '#4a5880', width: 1.25 };
   // 밑줄형은 선 굵기를 밑줄 굵기와 맞춰 한 줄로 이어 보이게 한다
   return { color: custom ?? branchColor(branch), width: depth === 0 ? (theme === 'underline' ? 3 : 2.5) : 1.5 };
 }
 
-/** 부모(x1,y1) → 자식(x2,y2) 경로. 직각 테마만 꺾인 선, 나머지는 곡선. */
-export function edgePath(theme: MapTheme, x1: number, y1: number, x2: number, y2: number): string {
-  if (theme !== 'elbow') {
-    return `M ${x1} ${y1} C ${x1 + 60} ${y1}, ${x2 - 60} ${y2}, ${x2} ${y2}`;
-  }
+/** 부모(x1,y1) → 자식(x2,y2) 경로. 어느 모양에서든 직각으로 꺾인 선이다. */
+export function edgePath(x1: number, y1: number, x2: number, y2: number): string {
   // 꺾이는 자리를 자식 쪽 기준으로 잡는다 → 폭이 다른 부모들도 같은 세로줄에서 꺾인다
   const mx = x2 - 40;
   const dy = y2 - y1;

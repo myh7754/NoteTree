@@ -20,6 +20,7 @@ import { TextNode } from './TextNode';
 import { TableNode } from './TableNode';
 import { BezierEdge } from './BezierEdge';
 import { ChordPanController } from './ChordPanController';
+import { edgePath } from '../../utils/mapTheme';
 
 const nodeTypes: NodeTypes = {
   textNode: TextNode,
@@ -330,8 +331,7 @@ function Flow() {
     const sy = parent.position.y + ph / 2;
     const tx = slotX;
     const ty = slotY + gh / 2;
-    const mx = (sx + tx) / 2;
-    const path = `M ${sx} ${sy} C ${mx} ${sy}, ${mx} ${ty}, ${tx} ${ty}`;
+    const path = edgePath(sx, sy, tx, ty);
     return { slotX, slotY, gw, gh, path };
   }, [rfNodes, draggingId, drop, mindMapData.children]);
 

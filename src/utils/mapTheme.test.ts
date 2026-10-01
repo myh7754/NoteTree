@@ -21,9 +21,9 @@ describe('mapTheme', () => {
   });
 
   it('직접 칠한 색은 어느 테마에서든 테마 색보다 우선한다', () => {
-    expect(nodeLook('branch', 1, 0, '#ff0000').style.border).toContain('#ff0000');
-    expect(nodeLook('branch', 3, 0, '#ff0000').plain).toBe(false); // 글자만 있던 노드도 색이 보여야 한다
-    expect(edgeLook('elbow', 1, 0, '#ff0000').color).toBe('#ff0000');
+    expect(nodeLook('classic', 1, 0, '#ff0000').style.background).toBe('#ff0000');
+    expect(nodeLook('plain', 3, 0, '#ff0000').plain).toBe(false); // 글자만 있던 노드도 색이 보여야 한다
+    expect(edgeLook('plain', 1, 0, '#ff0000').color).toBe('#ff0000');
   });
 
   it('같은 가지의 노드와 선은 같은 색이다', () => {
@@ -35,17 +35,22 @@ describe('mapTheme', () => {
   it('밑줄형만 선이 노드 아래쪽에 붙는다', () => {
     expect(nodeLook('underline', 1, 0).anchor).toBe('bottom');
     expect(nodeLook('underline', 0, -1).anchor).toBe('mid');
-    expect(nodeLook('branch', 1, 0).anchor).toBe('mid');
+    expect(nodeLook('plain', 1, 0).anchor).toBe('mid');
   });
 
-  it('직각 테마만 꺾인 선을 그린다', () => {
-    expect(edgePath('elbow', 0, 0, 100, 50)).toContain('V');
-    expect(edgePath('elbow', 0, 10, 100, 10)).toBe('M 0 10 H 100');
-    expect(edgePath('classic', 0, 0, 100, 50)).toContain('C');
+  it('글자만 모양은 중심 주제 말고는 상자가 없다', () => {
+    expect(nodeLook('plain', 0, -1).plain).toBe(false);
+    expect(nodeLook('plain', 1, 0).plain).toBe(true);
+    expect(nodeLook('plain', 4, 0).plain).toBe(true);
+  });
+
+  it('선은 직각으로 꺾인다 — 높이가 같으면 직선', () => {
+    expect(edgePath(0, 0, 100, 50)).toContain('V');
+    expect(edgePath(0, 10, 100, 10)).toBe('M 0 10 H 100');
   });
 
   it('저장된 값이 이상하면 기본 테마로 돌아간다', () => {
-    expect(readMapTheme('elbow')).toBe('elbow');
+    expect(readMapTheme('plain')).toBe('plain');
     expect(readMapTheme('nope')).toBe('classic');
     expect(readMapTheme(null)).toBe('classic');
   });

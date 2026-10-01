@@ -3,7 +3,7 @@ import type { MindMapEdge } from '../../types';
 import { useMindMapStore } from '../../store/useMindMapStore';
 import { edgeLook, edgePath, treeMeta } from '../../utils/mapTheme';
 
-// 이름은 BezierEdge지만 맵 모양(테마)에 따라 직각으로 꺾인 선도 그린다.
+// 이름은 BezierEdge지만 지금은 직각으로 꺾인 선을 그린다 (edgePath).
 export function BezierEdge({
   sourceX, sourceY, targetX, targetY,
   target,
@@ -18,7 +18,7 @@ export function BezierEdge({
 
   return (
     <path
-      d={edgePath(theme, sourceX, sourceY, targetX, targetY)}
+      d={edgePath(sourceX, sourceY, targetX, targetY)}
       stroke={isPreview ? '#f59e0b' : look.color}
       strokeWidth={isPreview ? 2.5 : look.width}
       fill="none"
