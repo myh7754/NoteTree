@@ -105,7 +105,7 @@ export function PrivacyPolicy() {
                 <tr>
                   <td className="border border-slate-700 px-2 py-1">PostHog</td>
                   <td className="border border-slate-700 px-2 py-1">기능 이용 기록 분석</td>
-                  <td className="border border-slate-700 px-2 py-1">유럽연합</td>
+                  <td className="border border-slate-700 px-2 py-1">미국</td>
                 </tr>
               </tbody>
             </table>
