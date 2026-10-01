@@ -39,34 +39,41 @@ export function ShortcutsHelp() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 px-5 py-4">
-          {SHORTCUT_GROUPS.map((group) => (
-            <section key={group.title}>
-              <h3 className="text-[11px] uppercase tracking-wider text-slate-500 mb-2">
-                {group.title}
-              </h3>
-              {/* 키를 고정폭 열에 두어 설명의 왼쪽 끝을 맞춘다.
-                  설명을 오른쪽 정렬하면 줄마다 시작점이 달라져 훑어읽기가 어렵다. */}
-              <dl className="space-y-1.5">
-                {group.items.map((item) => (
-                  <div key={item.desc} className="flex items-baseline gap-3">
-                    <dt className="shrink-0 w-[8.5rem]">
-                      <kbd className="inline-block px-1.5 py-0.5 rounded border border-slate-600 bg-slate-800 text-[11px] font-mono text-slate-200 whitespace-nowrap">
-                        {item.keys}
-                      </kbd>
-                    </dt>
-                    <dd className="text-xs text-slate-300 leading-relaxed">{item.desc}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
-          ))}
-        </div>
+        <ShortcutList className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 px-5 py-4" />
 
         <div className="px-5 py-2.5 border-t border-slate-800 text-[10px] text-slate-500">
           Esc 또는 바깥을 눌러 닫기
         </div>
       </div>
+    </div>
+  );
+}
+
+/** 단축키 목록 본문. 이 도움말 창과 설정창의 단축키 탭이 같이 쓴다. */
+export function ShortcutList({ className }: { className: string }) {
+  return (
+    <div className={className}>
+      {SHORTCUT_GROUPS.map((group) => (
+        <section key={group.title}>
+          <h3 className="text-[11px] uppercase tracking-wider text-slate-500 mb-2">
+            {group.title}
+          </h3>
+          {/* 키를 고정폭 열에 두어 설명의 왼쪽 끝을 맞춘다.
+              설명을 오른쪽 정렬하면 줄마다 시작점이 달라져 훑어읽기가 어렵다. */}
+          <dl className="space-y-1.5">
+            {group.items.map((item) => (
+              <div key={item.desc} className="flex items-baseline gap-3">
+                <dt className="shrink-0 w-[8.5rem]">
+                  <kbd className="inline-block px-1.5 py-0.5 rounded border border-slate-600 bg-slate-800 text-[11px] font-mono text-slate-200 whitespace-nowrap">
+                    {item.keys}
+                  </kbd>
+                </dt>
+                <dd className="text-xs text-slate-300 leading-relaxed">{item.desc}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
     </div>
   );
 }

@@ -15,6 +15,7 @@ import { handleUrl, mapUrl } from '../../utils/publish';
 import { track } from '../../lib/analytics';
 import { HandleForm } from '../Toolbar/HandleForm';
 import { MAP_THEMES, type MapTheme } from '../../utils/mapTheme';
+import { ShortcutList } from '../ShortcutsHelp/ShortcutsHelp';
 
 /**
  * 설정창.
@@ -29,11 +30,12 @@ import { MAP_THEMES, type MapTheme } from '../../utils/mapTheme';
  * - 여기: 내 맵 전체에서 무엇을 공개했는지 한 화면에
  * 둘 다 DB에서 읽고, 한쪽에서 바꾸면 publishRevision 신호로 다른 쪽이 다시 읽는다.
  *
- * ponytail: 탭은 지금 채울 게 있는 셋뿐이다. 연동·결제·단축키 커스텀은 그 기능을
+ * ponytail: 탭은 지금 채울 게 있는 것뿐이다. 단축키 탭은 지금은 목록만 보여 준다
+ * (바꾸는 기능은 아직 없다). 연동·결제는 그 기능을
  * 만드는 날 탭을 더한다 — 빈 탭을 미리 두면 몇 달간 "준비 중"으로 남는다.
  */
-type Tab = '화면' | '공개' | '계정';
-const TABS: Tab[] = ['화면', '공개', '계정'];
+type Tab = '화면' | '단축키' | '공개' | '계정';
+const TABS: Tab[] = ['화면', '단축키', '공개', '계정'];
 
 export function SettingsDialog() {
   const isOpen = useMindMapStore((s) => s.isSettingsOpen);
@@ -99,7 +101,15 @@ export function SettingsDialog() {
         </div>
 
         <div className="overflow-y-auto px-4 py-4">
-          {tab === '화면' ? <ScreenTab /> : tab === '공개' ? <PublishTab /> : <AccountTab />}
+          {tab === '화면' ? (
+            <ScreenTab />
+          ) : tab === '단축키' ? (
+            <ShortcutList className="space-y-5" />
+          ) : tab === '공개' ? (
+            <PublishTab />
+          ) : (
+            <AccountTab />
+          )}
         </div>
       </div>
     </div>
@@ -113,8 +123,6 @@ function ScreenTab() {
   const setTheme = useMindMapStore((s) => s.setMapTheme);
   const width = useMindMapStore((s) => s.noteDrawerWidth);
   const setWidth = useMindMapStore((s) => s.setNoteDrawerWidth);
-  const setShortcutsOpen = useMindMapStore((s) => s.setShortcutsOpen);
-  const setSettingsOpen = useMindMapStore((s) => s.setSettingsOpen);
 
   return (
     <div className="space-y-5">
@@ -125,8 +133,8 @@ function ScreenTab() {
               key={t.id}
               className={`flex flex-col items-center gap-1 rounded-lg border bg-slate-950 px-2 pb-1.5 pt-2 text-xs ${
                 theme === t.id
-                  ? 'border-indigo-500 text-white ring-1 ring-indigo-500'
-                  : 'border-slate-700 text-slate-400 hover:border-slate-500'
+                  ? 'border-indigo-500 font-semibold text-white ring-1 ring-indigo-500'
+                  : 'border-slate-700 text-slate-200 hover:border-slate-500'
               }`}
               aria-pressed={theme === t.id}
               onClick={() => setTheme(t.id)}
@@ -164,18 +172,6 @@ function ScreenTab() {
           className="w-full accent-indigo-500"
           aria-label="노트 패널 너비"
         />
-      </Row>
-
-      <Row label="단축키" hint="Tab 자식 추가, Enter 형제 추가, Ctrl+F 검색 등">
-        <button
-          className="rounded bg-slate-800 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-700"
-          onClick={() => {
-            setSettingsOpen(false);
-            setShortcutsOpen(true);
-          }}
-        >
-          단축키 목록 보기
-        </button>
       </Row>
     </div>
   );
@@ -495,37 +491,42 @@ function AccountTab() {
 /** 맵 모양을 고르기 전에 차이를 보여 주는 작은 그림: 중심 주제 하나와 가지 둘. */
 function ThemePreview({ theme }: { theme: MapTheme }) {
   const classic = theme === 'classic';
+  const underline = theme === 'underline';
   const rows = [
-    { y: 14, color: classic ? '#6366f1' : '#7aa2f7' },
-    { y: 42, color: classic ? '#6366f1' : '#9ece6a' },
+    { y: 15, label: '컬렉션', color: classic ? '#6366f1' : '#7aa2f7' },
+    { y: 45, label: 'JVM', color: classic ? '#6366f1' : '#9ece6a' },
   ];
   // 밑줄형은 선이 글자 아래(밑줄)로 들어간다
-  const drop = theme === 'underline' ? 7 : 0;
+  const drop = underline ? 8 : 0;
   return (
-    <svg viewBox="0 0 96 56" className="w-full" aria-hidden="true">
-      {rows.map(({ y, color }) => (
+    <svg viewBox="0 0 120 60" className="w-full" aria-hidden="true">
+      {rows.map(({ y, label, color }) => (
         <g key={y}>
           <path
-            d={`M 30 28 H 40 V ${y + drop} H ${theme === 'underline' ? 90 : 52}`}
+            d={`M 36 30 H 46 V ${y + drop} H ${underline ? 112 : 56}`}
             stroke={color}
             strokeWidth={1.5}
             fill="none"
             strokeLinejoin="round"
           />
-          {classic && <rect x={52} y={y - 7} width={38} height={14} rx={3} fill="#1e293b" stroke="#475569" />}
-          <rect x={classic ? 58 : 56} y={y - 2} width={24} height={4} rx={2} fill="#cbd5e1" />
+          {classic && <rect x={56} y={y - 9} width={56} height={18} rx={4} fill="#1e293b" stroke="#475569" />}
+          <text x={classic ? 63 : 60} y={y} dominantBaseline="central" fontSize={10} fontWeight={500} fill="#f1f5f9">
+            {label}
+          </text>
         </g>
       ))}
       <rect
         x={4}
-        y={19}
-        width={26}
-        height={18}
-        rx={4}
+        y={20}
+        width={32}
+        height={20}
+        rx={5}
         fill={classic ? '#1e293b' : '#6366f1'}
         stroke={classic ? '#475569' : 'none'}
       />
-      <rect x={10} y={26} width={14} height={4} rx={2} fill="#f8fafc" />
+      <text x={20} y={30} textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={700} fill="#ffffff">
+        자바
+      </text>
     </svg>
   );
 }
