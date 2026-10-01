@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 import { useMindMapStore } from '../../store/useMindMapStore';
 import { useAuth } from '../../hooks/useAuth';
 import { deleteAccount } from '../../db/account';
-import { getMyHandle } from '../../db/publish';
-import { handleUrl } from '../../utils/publish';
+import { syncNow } from '../../db/cloudSync';
+import { getMyHandle, listMyMapsPublish, setMapPublic, type MyMapPublish } from '../../db/publish';
+import { handleUrl, mapUrl } from '../../utils/publish';
+import { track } from '../../lib/analytics';
+import { HandleForm } from '../Toolbar/HandleForm';
 
 /**
  * 설정창.
@@ -12,14 +15,17 @@ import { handleUrl } from '../../utils/publish';
  * 노트 패널 위치는 노트 창 안의 작은 토글에만 있었고(아는 사람만 알았다),
  * 회원 탈퇴와 처리방침은 계정 드롭다운 깊숙이 있었다.
  *
- * 여기 넣지 않는 것: **맵마다 다른 설정.** 공개 여부가 그렇다. 두 번 클릭해야
- * 보이는 자리에 두면 "내 맵이 공개인지 모르는" 상태가 생기고, 그건 방금 고친
- * 버그와 같은 사고다. 맵마다 다른 것은 툴바에 상시 노출한다.
+ * 공개 여부는 **툴바와 여기 두 곳에** 있다. 역할이 다르다:
+ * - 툴바: 지금 보는 맵이 공개인지 한눈에 (두 번 클릭해야 보이면 "공개인 줄 모르는"
+ *   상태가 생긴다)
+ * - 여기: 내 맵 전체에서 무엇을 공개했는지 한 화면에
+ * 둘 다 DB에서 읽고, 한쪽에서 바꾸면 publishRevision 신호로 다른 쪽이 다시 읽는다.
  *
- * ponytail: 탭은 지금 채울 게 있는 둘뿐이다. 연동·결제·단축키 커스텀은 그 기능을
+ * ponytail: 탭은 지금 채울 게 있는 셋뿐이다. 연동·결제·단축키 커스텀은 그 기능을
  * 만드는 날 탭을 더한다 — 빈 탭을 미리 두면 몇 달간 "준비 중"으로 남는다.
  */
-type Tab = '화면' | '계정';
+type Tab = '화면' | '공개' | '계정';
+const TABS: Tab[] = ['화면', '공개', '계정'];
 
 export function SettingsDialog() {
   const isOpen = useMindMapStore((s) => s.isSettingsOpen);
@@ -52,7 +58,7 @@ export function SettingsDialog() {
         </div>
 
         <div className="flex gap-1 border-b border-slate-800 px-3 pt-2">
-          {(['화면', '계정'] as Tab[]).map((t) => (
+          {TABS.map((t) => (
             <button
               key={t}
               className={`rounded-t px-3 py-1.5 text-xs ${
@@ -68,7 +74,7 @@ export function SettingsDialog() {
         </div>
 
         <div className="overflow-y-auto px-4 py-4">
-          {tab === '화면' ? <ScreenTab /> : <AccountTab />}
+          {tab === '화면' ? <ScreenTab /> : tab === '공개' ? <PublishTab /> : <AccountTab />}
         </div>
       </div>
     </div>
@@ -128,26 +134,155 @@ function ScreenTab() {
   );
 }
 
+/**
+ * 내 맵 전체의 공개 여부를 한 화면에서 본다.
+ *
+ * 켤 때는 툴바와 똑같이 **동기화를 먼저** 한다 — 맵은 평소 브라우저에만 있어서,
+ * 그냥 켜면 방문자가 서버에 마지막으로 올라간 옛 내용을 본다.
+ */
+function PublishTab() {
+  const { session } = useAuth();
+  const revision = useMindMapStore((s) => s.publishRevision);
+  const bump = useMindMapStore((s) => s.bumpPublishRevision);
+
+  // 어느 시점(revision)의 결과인지 함께 든다 → 바뀌면 저절로 "불러오는 중"이 된다
+  const [loaded, setLoaded] = useState<{
+    revision: number;
+    handle: string | null;
+    maps: MyMapPublish[];
+  } | null>(null);
+  const data = loaded?.revision === revision ? loaded : null;
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!session) return;
+    let alive = true;
+    Promise.all([getMyHandle(), listMyMapsPublish()])
+      .then(([handle, maps]) => alive && setLoaded({ revision, handle, maps }))
+      .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)));
+    return () => {
+      alive = false;
+    };
+  }, [session, revision]);
+
+  if (!session) {
+    return <p className="text-xs text-slate-400">로그인하면 맵을 공개할 수 있습니다.</p>;
+  }
+  if (!data) {
+    return (
+      <p className="text-xs text-slate-500">
+        {error ?? '불러오는 중…'}
+      </p>
+    );
+  }
+
+  const toggle = async (map: MyMapPublish) => {
+    if (busyId) return;
+    const next = !map.isPublic;
+    setBusyId(map.id);
+    setError(null);
+    try {
+      if (next) await syncNow();
+      await setMapPublic(map.id, map.title, next);
+      if (next) track('map_published', { map_id: map.id });
+      bump();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const copy = async (map: MyMapPublish) => {
+    if (!map.slug) return;
+    await navigator.clipboard.writeText(mapUrl(map.slug));
+    setCopiedId(map.id);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const publicCount = data.maps.filter((m) => m.isPublic).length;
+
+  return (
+    <div className="space-y-5">
+      <Row label="닉네임" hint="공개 주소 /u/<닉네임> 에 쓰입니다.">
+        {data.handle === null ? (
+          <HandleForm onClaimed={bump} />
+        ) : (
+          <a
+            className="text-xs text-indigo-400 hover:text-indigo-300"
+            href={`/u/${encodeURIComponent(data.handle)}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {handleUrl(data.handle).replace(/^https?:\/\//, '')} ↗
+          </a>
+        )}
+      </Row>
+
+      <Row
+        label={`내 맵 (${publicCount}개 공개 중 / 전체 ${data.maps.length}개)`}
+        hint="공개한 맵은 링크를 받은 사람이 로그인 없이 읽을 수 있습니다. 고칠 수는 없습니다."
+      >
+        {data.maps.length === 0 ? (
+          <p className="text-xs text-slate-500">
+            서버에 올라간 맵이 없습니다. 툴바의 동기화를 먼저 눌러 주세요.
+          </p>
+        ) : (
+          <ul className="divide-y divide-slate-800 rounded-lg border border-slate-800">
+            {data.maps.map((m) => (
+              <li key={m.id} className="flex items-center gap-2 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-xs text-slate-200">{m.title}</div>
+                  {m.isPublic && m.slug && (
+                    <button
+                      className="mt-0.5 max-w-full truncate text-left text-[10px] text-indigo-400 hover:text-indigo-300"
+                      onClick={() => copy(m)}
+                      title="눌러서 링크 복사"
+                    >
+                      {copiedId === m.id ? '복사했습니다' : `/m/${m.slug} · 복사`}
+                    </button>
+                  )}
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={m.isPublic}
+                  aria-label={`${m.title} 공개`}
+                  disabled={busyId !== null || data.handle === null}
+                  onClick={() => toggle(m)}
+                  className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors disabled:opacity-40 ${
+                    m.isPublic ? 'bg-emerald-600' : 'bg-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
+                      m.isPublic ? 'left-[18px]' : 'left-0.5'
+                    }`}
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {busyId && <p className="mt-2 text-[11px] text-slate-500">처리 중… (켤 때는 먼저 동기화합니다)</p>}
+        {data.handle === null && data.maps.length > 0 && (
+          <p className="mt-2 text-[11px] text-slate-500">닉네임을 먼저 정해야 공개할 수 있습니다.</p>
+        )}
+        {error && <div className="mt-2 break-words text-[11px] text-red-300">{error}</div>}
+      </Row>
+    </div>
+  );
+}
+
 function AccountTab() {
   const { session } = useAuth();
-  const [handle, setHandle] = useState<string | null | undefined>(undefined);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!session) return;
-    getMyHandle()
-      .then(setHandle)
-      .catch(() => setHandle(null));
-  }, [session]);
-
   if (!session) {
-    return (
-      <p className="text-xs text-slate-400">
-        로그인하면 닉네임과 계정 설정이 여기 표시됩니다.
-      </p>
-    );
+    return <p className="text-xs text-slate-400">로그인하면 계정 설정이 여기 표시됩니다.</p>;
   }
 
   const runDelete = async () => {
@@ -167,23 +302,6 @@ function AccountTab() {
     <div className="space-y-5">
       <Row label="계정" hint="GitHub 로그인으로 연결된 계정입니다.">
         <div className="truncate text-xs text-slate-300">{session.user.email ?? '이메일 없음'}</div>
-      </Row>
-
-      <Row label="닉네임" hint="공개 주소 /u/<닉네임> 에 쓰입니다. 처음 맵을 공개할 때 정합니다.">
-        {handle === undefined ? (
-          <div className="text-xs text-slate-500">불러오는 중…</div>
-        ) : handle === null ? (
-          <div className="text-xs text-slate-500">아직 없음 — 툴바의 공개 스위치에서 정합니다.</div>
-        ) : (
-          <a
-            className="text-xs text-indigo-400 hover:text-indigo-300"
-            href={`/u/${encodeURIComponent(handle)}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {handleUrl(handle).replace(/^https?:\/\//, '')} ↗
-          </a>
-        )}
       </Row>
 
       <Row label="개인정보" hint="수집 항목, 보관 기간, 국외 이전 사업자를 적어 두었습니다.">

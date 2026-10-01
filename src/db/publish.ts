@@ -126,6 +126,41 @@ export async function getPublishState(mapId: string): Promise<PublishState> {
   return { isPublic: Boolean(data?.is_public), slug: (data?.slug as string) ?? null };
 }
 
+export interface MyMapPublish {
+  id: string;
+  title: string;
+  isPublic: boolean;
+  slug: string | null;
+}
+
+/**
+ * 내 맵 전체와 각각의 공개 여부. 설정창의 공개 탭이 쓴다.
+ *
+ * 서버에 올라간 맵만 나온다 — 아직 동기화되지 않은 맵은 서버에 행이 없어
+ * 공개할 대상 자체가 없다. (공개를 켤 때는 호출부가 먼저 동기화한다)
+ */
+export async function listMyMapsPublish(): Promise<MyMapPublish[]> {
+  if (!supabase) return [];
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (!userId) return [];
+
+  const { data, error } = await supabase
+    .from('maps')
+    .select('id, title, is_public, slug')
+    .eq('owner_id', userId) // 남의 공개 맵도 RLS로는 읽히므로 내 것만 거른다
+    .is('deleted_at', null)
+    .order('updated_at', { ascending: false });
+  if (error) throw new Error(`맵 목록을 읽지 못했습니다: ${error.message}`);
+
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    title: (r.title as string) || '제목 없음',
+    isPublic: Boolean(r.is_public),
+    slug: (r.slug as string) ?? null,
+  }));
+}
+
 /**
  * 공개 켜기/끄기.
  *

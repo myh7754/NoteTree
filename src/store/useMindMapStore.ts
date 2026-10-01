@@ -213,6 +213,13 @@ interface MindMapStoreState {
   /** 단축키 도움말 모달. 기능이 있어도 못 찾으면 없는 것과 같아서 둔다. */
   isShortcutsOpen: boolean;
   isSettingsOpen: boolean;
+  /**
+   * 공개 설정(맵 공개 여부·닉네임)이 바뀔 때마다 1씩 오른다.
+   * 툴바와 설정창이 같은 DB 값을 따로 읽어 들고 있으므로, 한쪽에서 바꾸면
+   * 다른 쪽이 다시 읽어야 한다. 값 자체를 스토어에 두지 않는 이유 — 출처는 DB이고
+   * 여기 사본을 두면 사본이 틀리는 날이 온다. 신호만 둔다.
+   */
+  publishRevision: number;
   /** 노트 패널을 어느 쪽에 붙일지. 이 기기의 취향이라 맵 데이터가 아니라 localStorage에 둔다. */
   notePanelSide: 'left' | 'right';
   // 자동 저장 상태. 실패를 조용히 넘기지 않고 화면에 드러내기 위한 것.
@@ -254,6 +261,7 @@ interface MindMapStoreActions {
   setSearchOpen: (open: boolean) => void;
   setShortcutsOpen: (open: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
+  bumpPublishRevision: () => void;
   setNotePanelSide: (side: 'left' | 'right') => void;
   setSaveStatus: (status: SaveStatus, error?: string | null, savedAt?: number) => void;
   setExternalChange: (value: boolean) => void;
@@ -296,6 +304,7 @@ export const useMindMapStore = create<MindMapStore>()(
       isSearchOpen: false,
       isShortcutsOpen: false,
       isSettingsOpen: false,
+      publishRevision: 0,
       notePanelSide: localStorage.getItem('note-panel-side') === 'left' ? 'left' : 'right',
       saveStatus: 'idle',
       saveError: null,
@@ -610,6 +619,8 @@ export const useMindMapStore = create<MindMapStore>()(
       setShortcutsOpen: (open) => set({ isShortcutsOpen: open }),
 
       setSettingsOpen: (open) => set({ isSettingsOpen: open }),
+
+      bumpPublishRevision: () => set((st) => ({ publishRevision: st.publishRevision + 1 })),
 
       setSaveStatus: (status, error = null, savedAt) =>
         set((state) => ({

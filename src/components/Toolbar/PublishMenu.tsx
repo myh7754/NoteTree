@@ -2,15 +2,10 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useMindMapStore } from '../../store/useMindMapStore';
 import { syncNow } from '../../db/cloudSync';
-import {
-  getMyHandle,
-  getPublishState,
-  claimHandle,
-  setMapPublic,
-  type PublishState,
-} from '../../db/publish';
-import { validateHandle, normalizeHandle, mapUrl, handleUrl } from '../../utils/publish';
+import { getMyHandle, getPublishState, setMapPublic, type PublishState } from '../../db/publish';
+import { mapUrl, handleUrl } from '../../utils/publish';
 import { track } from '../../lib/analytics';
+import { HandleForm } from './HandleForm';
 
 const PANEL =
   'absolute top-full right-0 mt-1 z-40 w-72 whitespace-normal rounded-lg border border-slate-700 bg-slate-900 shadow-xl p-3';
@@ -25,15 +20,26 @@ export function PublishMenu() {
   const { session, cloudEnabled } = useAuth();
   const mapId = useMindMapStore((s) => s.mindMapData.id);
   const title = useMindMapStore((s) => s.mindMapData.title);
+  // 설정창에서 공개 여부나 닉네임을 바꾸면 오른다 → 여기 들고 있는 값을 다시 읽는다
+  const revision = useMindMapStore((s) => s.publishRevision);
+  const bumpRevision = useMindMapStore((s) => s.bumpPublishRevision);
 
   const [isOpen, setIsOpen] = useState(false);
   // 어느 맵의 결과인지 함께 들고 있는다. 맵이 바뀌면 값이 저절로 "모름"이 되므로
   // 효과 안에서 초기화할 필요가 없고, 옛 맵의 상태가 잠깐 비치는 일도 없다.
-  const [loaded, setLoaded] = useState<{ mapId: string; value: PublishState | null } | null>(null);
-  const state = loaded?.mapId === mapId ? loaded.value : undefined;
-  const setState = (value: PublishState | null) => setLoaded({ mapId, value });
-  const [handle, setHandle] = useState<string | null | undefined>(undefined);
-  const [handleInput, setHandleInput] = useState('');
+  const [loaded, setLoaded] = useState<{
+    mapId: string;
+    revision: number;
+    value: PublishState | null;
+  } | null>(null);
+  const state =
+    loaded?.mapId === mapId && loaded.revision === revision ? loaded.value : undefined;
+  // 닉네임도 같은 방식 — 설정창에서 정했는데 여기서 또 입력란을 띄우면 안 된다
+  const [loadedHandle, setLoadedHandle] = useState<{
+    revision: number;
+    value: string | null;
+  } | null>(null);
+  const handle = loadedHandle?.revision === revision ? loadedHandle.value : undefined;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -50,20 +56,24 @@ export function PublishMenu() {
     if (!session) return;
     let alive = true; // 맵을 빠르게 바꾸면 옛 응답이 나중에 도착할 수 있다
     getPublishState(mapId)
-      .then((s) => alive && setLoaded({ mapId, value: s }))
-      .catch(() => alive && setLoaded({ mapId, value: null }));
+      .then((s) => alive && setLoaded({ mapId, revision, value: s }))
+      .catch(() => alive && setLoaded({ mapId, revision, value: null }));
     return () => {
       alive = false;
     };
-  }, [session, mapId]);
+  }, [session, mapId, revision]);
 
-  // 닉네임은 패널을 열 때만 필요하다. 한 번 읽으면 다시 읽지 않는다.
+  // 닉네임은 패널을 열 때만 필요하다.
   useEffect(() => {
     if (!isOpen || !session || handle !== undefined) return;
+    let alive = true;
     getMyHandle()
-      .then(setHandle)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
-  }, [isOpen, session, handle]);
+      .then((h) => alive && setLoadedHandle({ revision, value: h }))
+      .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)));
+    return () => {
+      alive = false;
+    };
+  }, [isOpen, session, handle, revision]);
 
   if (!cloudEnabled || !session) return null;
 
@@ -80,22 +90,14 @@ export function PublishMenu() {
     }
   };
 
-  const submitHandle = () =>
-    run(async () => {
-      const normalized = normalizeHandle(handleInput);
-      const reason = validateHandle(normalized);
-      if (reason) throw new Error(reason);
-      await claimHandle(normalized);
-      setHandle(normalized);
-    });
-
   const toggle = (next: boolean) =>
     run(async () => {
       // 켤 때만 올린다. 끄는 건 서버 상태만 바꾸는 일이라 기다릴 이유가 없다.
       if (next) await syncNow();
-      const result = await setMapPublic(mapId, title, next);
-      setState(result);
+      await setMapPublic(mapId, title, next);
       if (next) track('map_published', { map_id: mapId });
+      // 값을 직접 넣지 않고 신호만 올린다 → 이 버튼도 설정창도 DB에서 다시 읽는다
+      bumpRevision();
     });
 
   const copy = async (text: string) => {
@@ -135,30 +137,7 @@ export function PublishMenu() {
             {handle === undefined ? (
               <p className="mt-2 text-[11px] text-slate-500">불러오는 중…</p>
             ) : handle === null ? (
-              <>
-                <p className="mt-1 mb-2 text-[11px] leading-relaxed text-slate-400">
-                  공개하려면 먼저 닉네임이 필요합니다. 공개 주소에 쓰이고, 나중에 바꾸기
-                  어렵습니다.
-                </p>
-                <div className="flex items-center gap-1 text-[11px] text-slate-500">
-                  <span>/u/</span>
-                  <input
-                    className="min-w-0 flex-1 rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-100 outline-none focus:border-indigo-600"
-                    value={handleInput}
-                    onChange={(e) => setHandleInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && submitHandle()}
-                    placeholder="my-handle"
-                    autoFocus
-                  />
-                </div>
-                <button
-                  className="mt-2 h-8 w-full rounded-md bg-indigo-600 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
-                  onClick={submitHandle}
-                  disabled={busy}
-                >
-                  {busy ? '저장 중…' : '닉네임 정하기'}
-                </button>
-              </>
+              <HandleForm onClaimed={bumpRevision} />
             ) : (
               <>
                 <p className="mt-1 mb-3 text-[11px] leading-relaxed text-slate-400">

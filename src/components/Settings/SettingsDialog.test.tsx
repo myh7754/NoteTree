@@ -7,7 +7,18 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
  */
 const deleteAccount = vi.fn().mockResolvedValue(undefined);
 vi.mock('../../db/account', () => ({ deleteAccount: () => deleteAccount() }));
-vi.mock('../../db/publish', () => ({ getMyHandle: vi.fn().mockResolvedValue('myh') }));
+const getMyHandle = vi.fn();
+const listMyMapsPublish = vi.fn();
+const setMapPublic = vi.fn();
+const syncNow = vi.fn();
+const calls: string[] = []; // 호출 순서를 본다 — 켤 때 동기화가 먼저여야 한다
+vi.mock('../../db/publish', () => ({
+  getMyHandle: () => getMyHandle(),
+  listMyMapsPublish: () => listMyMapsPublish(),
+  setMapPublic: (...a: unknown[]) => setMapPublic(...a),
+  claimHandle: vi.fn(),
+}));
+vi.mock('../../db/cloudSync', () => ({ syncNow: () => syncNow() }));
 
 const auth = { session: { user: { id: 'u1', email: 'me@example.com' } }, ready: true, cloudEnabled: true };
 vi.mock('../../hooks/useAuth', () => ({ useAuth: () => auth }));
@@ -23,8 +34,26 @@ beforeEach(() => {
   reload.mockClear();
   deleteAccount.mockClear();
   auth.session = { user: { id: 'u1', email: 'me@example.com' } };
-  useMindMapStore.setState({ isSettingsOpen: true, notePanelSide: 'right' });
+  useMindMapStore.setState({ isSettingsOpen: true, notePanelSide: 'right', publishRevision: 0 });
+  calls.length = 0;
+  getMyHandle.mockReset().mockResolvedValue('myh');
+  listMyMapsPublish.mockReset().mockResolvedValue([
+    { id: 'a', title: '자바', isPublic: true, slug: '자바-a1b2c3' },
+    { id: 'b', title: 'DB', isPublic: false, slug: null },
+  ]);
+  syncNow.mockReset().mockImplementation(async () => {
+    calls.push('sync');
+  });
+  setMapPublic.mockReset().mockImplementation(async () => {
+    calls.push('set');
+    return { isPublic: true, slug: 'x' };
+  });
 });
+
+const openPublishTab = async () => {
+  fireEvent.click(screen.getByText('공개'));
+  await screen.findByText('자바');
+};
 
 const openAccountTab = () => fireEvent.click(screen.getByText('계정'));
 
@@ -92,5 +121,57 @@ describe('SettingsDialog 회원 탈퇴', () => {
     render(<SettingsDialog />);
     openAccountTab();
     expect(screen.queryByText('탈퇴하기')).not.toBeInTheDocument();
+  });
+});
+
+describe('SettingsDialog 공개 탭', () => {
+  it('내 맵 전체와 공개 여부를 보여준다', async () => {
+    render(<SettingsDialog />);
+    await openPublishTab();
+    expect(screen.getByText(/1개 공개 중 \/ 전체 2개/)).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: '자바 공개' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('switch', { name: 'DB 공개' })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('켤 때는 동기화를 먼저 한다 — 안 그러면 방문자가 옛 내용을 본다', async () => {
+    render(<SettingsDialog />);
+    await openPublishTab();
+    fireEvent.click(screen.getByRole('switch', { name: 'DB 공개' }));
+    await waitFor(() => expect(setMapPublic).toHaveBeenCalledWith('b', 'DB', true));
+    expect(calls).toEqual(['sync', 'set']);
+  });
+
+  it('끌 때는 동기화하지 않는다 — 서버 값만 바꾸면 된다', async () => {
+    render(<SettingsDialog />);
+    await openPublishTab();
+    fireEvent.click(screen.getByRole('switch', { name: '자바 공개' }));
+    await waitFor(() => expect(setMapPublic).toHaveBeenCalledWith('a', '자바', false));
+    expect(syncNow).not.toHaveBeenCalled();
+  });
+
+  it('바꾼 뒤 신호를 올려 툴바도 다시 읽게 한다', async () => {
+    render(<SettingsDialog />);
+    await openPublishTab();
+    fireEvent.click(screen.getByRole('switch', { name: 'DB 공개' }));
+    await waitFor(() => expect(useMindMapStore.getState().publishRevision).toBe(1));
+    // 신호가 오르면 이 탭도 목록을 다시 읽는다
+    await waitFor(() => expect(listMyMapsPublish).toHaveBeenCalledTimes(2));
+  });
+
+  it('닉네임이 없으면 토글이 잠기고 닉네임 입력란이 나온다', async () => {
+    getMyHandle.mockResolvedValue(null);
+    render(<SettingsDialog />);
+    await openPublishTab();
+    expect(screen.getByRole('switch', { name: 'DB 공개' })).toBeDisabled();
+    expect(screen.getByLabelText('닉네임')).toBeInTheDocument();
+  });
+
+  it('실패하면 이유를 보여주고 신호는 올리지 않는다', async () => {
+    setMapPublic.mockRejectedValue(new Error('공개 설정을 바꾸지 못했습니다'));
+    render(<SettingsDialog />);
+    await openPublishTab();
+    fireEvent.click(screen.getByRole('switch', { name: '자바 공개' }));
+    expect(await screen.findByText(/바꾸지 못했습니다/)).toBeInTheDocument();
+    expect(useMindMapStore.getState().publishRevision).toBe(0);
   });
 });
