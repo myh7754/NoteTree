@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMindMapStore } from '../../store/useMindMapStore';
 import { useAuth } from '../../hooks/useAuth';
 import { deleteAccount } from '../../db/account';
@@ -14,7 +14,7 @@ import {
 import { handleUrl, mapUrl } from '../../utils/publish';
 import { track } from '../../lib/analytics';
 import { HandleForm } from '../Toolbar/HandleForm';
-import { MAP_THEMES } from '../../utils/mapTheme';
+import { MAP_THEMES, type MapTheme } from '../../utils/mapTheme';
 
 /**
  * 설정창.
@@ -39,21 +39,38 @@ export function SettingsDialog() {
   const isOpen = useMindMapStore((s) => s.isSettingsOpen);
   const setOpen = useMindMapStore((s) => s.setSettingsOpen);
   const [tab, setTab] = useState<Tab>('화면');
+  // 창을 끌어 옮긴 거리. 맵 모양을 바꾸면서 뒤의 맵을 볼 수 있게 한다.
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const dragFrom = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
 
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={() => setOpen(false)}
     >
       <div
         className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
+        style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label="설정"
       >
-        <div className="flex items-center gap-1 border-b border-slate-800 px-4 py-3">
+        {/* 제목 줄을 잡고 끌면 창이 움직인다 */}
+        <div
+          className="flex cursor-move touch-none select-none items-center gap-1 border-b border-slate-800 px-4 py-3"
+          onPointerDown={(e) => {
+            if ((e.target as HTMLElement).closest('button')) return;
+            dragFrom.current = { px: e.clientX, py: e.clientY, ...offset };
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={(e) => {
+            const d = dragFrom.current;
+            if (d) setOffset({ x: d.x + e.clientX - d.px, y: d.y + e.clientY - d.py });
+          }}
+          onPointerUp={() => (dragFrom.current = null)}
+        >
           <span className="text-sm font-semibold text-slate-100">설정</span>
           <div className="flex-1" />
           <button
@@ -102,16 +119,19 @@ function ScreenTab() {
   return (
     <div className="space-y-5">
       <Row label="맵 모양" hint="노드와 선을 그리는 방식. 내용은 바뀌지 않습니다. 이 브라우저에만 저장됩니다.">
-        <div className="flex flex-wrap gap-1">
+        <div className="grid grid-cols-3 gap-2">
           {MAP_THEMES.map((t) => (
             <button
               key={t.id}
-              className={`rounded px-3 py-1.5 text-xs ${
-                theme === t.id ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              className={`flex flex-col items-center gap-1 rounded-lg border bg-slate-950 px-2 pb-1.5 pt-2 text-xs ${
+                theme === t.id
+                  ? 'border-indigo-500 text-white ring-1 ring-indigo-500'
+                  : 'border-slate-700 text-slate-400 hover:border-slate-500'
               }`}
               aria-pressed={theme === t.id}
               onClick={() => setTheme(t.id)}
             >
+              <ThemePreview theme={t.id} />
               {t.label}
             </button>
           ))}
@@ -469,6 +489,44 @@ function AccountTab() {
         {error && <div className="mt-2 break-words text-[11px] text-red-300">{error}</div>}
       </div>
     </div>
+  );
+}
+
+/** 맵 모양을 고르기 전에 차이를 보여 주는 작은 그림: 중심 주제 하나와 가지 둘. */
+function ThemePreview({ theme }: { theme: MapTheme }) {
+  const classic = theme === 'classic';
+  const rows = [
+    { y: 14, color: classic ? '#6366f1' : '#7aa2f7' },
+    { y: 42, color: classic ? '#6366f1' : '#9ece6a' },
+  ];
+  // 밑줄형은 선이 글자 아래(밑줄)로 들어간다
+  const drop = theme === 'underline' ? 7 : 0;
+  return (
+    <svg viewBox="0 0 96 56" className="w-full" aria-hidden="true">
+      {rows.map(({ y, color }) => (
+        <g key={y}>
+          <path
+            d={`M 30 28 H 40 V ${y + drop} H ${theme === 'underline' ? 90 : 52}`}
+            stroke={color}
+            strokeWidth={1.5}
+            fill="none"
+            strokeLinejoin="round"
+          />
+          {classic && <rect x={52} y={y - 7} width={38} height={14} rx={3} fill="#1e293b" stroke="#475569" />}
+          <rect x={classic ? 58 : 56} y={y - 2} width={24} height={4} rx={2} fill="#cbd5e1" />
+        </g>
+      ))}
+      <rect
+        x={4}
+        y={19}
+        width={26}
+        height={18}
+        rx={4}
+        fill={classic ? '#1e293b' : '#6366f1'}
+        stroke={classic ? '#475569' : 'none'}
+      />
+      <rect x={10} y={26} width={14} height={4} rx={2} fill="#f8fafc" />
+    </svg>
   );
 }
 
