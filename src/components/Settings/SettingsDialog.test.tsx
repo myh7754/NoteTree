@@ -175,3 +175,64 @@ describe('SettingsDialog 공개 탭', () => {
     expect(useMindMapStore.getState().publishRevision).toBe(0);
   });
 });
+
+describe('SettingsDialog 전체 공개 / 전체 비공개', () => {
+  it('전체 공개는 한 번 눌러서는 실행되지 않는다 (확인 단계)', async () => {
+    render(<SettingsDialog />);
+    await openPublishTab();
+    fireEvent.click(screen.getByText('전체 공개'));
+    expect(setMapPublic).not.toHaveBeenCalled();
+    expect(screen.getByText(/비공개인 맵 1개가 모두 공개됩니다/)).toBeInTheDocument();
+  });
+
+  it('확인하면 비공개였던 맵만 켠다 — 동기화는 한 번만', async () => {
+    render(<SettingsDialog />);
+    await openPublishTab();
+    fireEvent.click(screen.getByText('전체 공개'));
+    fireEvent.click(screen.getByText('모두 공개'));
+    await waitFor(() => expect(setMapPublic).toHaveBeenCalledTimes(1));
+    expect(setMapPublic).toHaveBeenCalledWith('b', 'DB', true);
+    expect(calls).toEqual(['sync', 'set']);
+  });
+
+  it('취소하면 아무것도 바뀌지 않는다', async () => {
+    render(<SettingsDialog />);
+    await openPublishTab();
+    fireEvent.click(screen.getByText('전체 공개'));
+    fireEvent.click(screen.getByText('취소'));
+    expect(setMapPublic).not.toHaveBeenCalled();
+    expect(screen.getByText('전체 공개')).toBeInTheDocument();
+  });
+
+  it('전체 비공개는 공개 중인 맵만 끄고 동기화하지 않는다', async () => {
+    render(<SettingsDialog />);
+    await openPublishTab();
+    fireEvent.click(screen.getByText('전체 비공개'));
+    await waitFor(() => expect(setMapPublic).toHaveBeenCalledTimes(1));
+    expect(setMapPublic).toHaveBeenCalledWith('a', '자바', false);
+    expect(syncNow).not.toHaveBeenCalled();
+  });
+
+  it('중간에 실패해도 목록을 다시 읽어 실제 상태를 보여준다', async () => {
+    listMyMapsPublish.mockResolvedValue([
+      { id: 'a', title: '자바', isPublic: false, slug: null },
+      { id: 'b', title: 'DB', isPublic: false, slug: null },
+    ]);
+    setMapPublic
+      .mockImplementationOnce(async () => ({ isPublic: true, slug: 'x' }))
+      .mockRejectedValueOnce(new Error('두 번째에서 실패'));
+    render(<SettingsDialog />);
+    await openPublishTab();
+    fireEvent.click(screen.getByText('전체 공개'));
+    fireEvent.click(screen.getByText('모두 공개'));
+    await waitFor(() => expect(useMindMapStore.getState().publishRevision).toBe(1));
+    expect(setMapPublic).toHaveBeenCalledTimes(2);
+  });
+
+  it('닉네임이 없으면 전체 공개가 잠긴다', async () => {
+    getMyHandle.mockResolvedValue(null);
+    render(<SettingsDialog />);
+    await openPublishTab();
+    expect(screen.getByText('전체 공개')).toBeDisabled();
+  });
+});

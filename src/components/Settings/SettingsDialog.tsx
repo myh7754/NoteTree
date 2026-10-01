@@ -155,6 +155,8 @@ function PublishTab() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  // 전체 공개는 한 번에 모든 맵을 드러내므로 확인 단계를 거친다 (탈퇴와 같은 방식)
+  const [confirmingAll, setConfirmingAll] = useState(false);
 
   useEffect(() => {
     if (!session) return;
@@ -195,6 +197,35 @@ function PublishTab() {
     }
   };
 
+  /**
+   * 전체 공개 / 전체 비공개.
+   *
+   * 이미 원하는 상태인 맵은 건드리지 않는다. 하나가 실패하면 거기서 멈추고,
+   * 그때까지 바뀐 것은 그대로 둔 채 목록을 다시 읽어 실제 상태를 보여준다 —
+   * "전부 됐다"거나 "전부 안 됐다"고 뭉개지 않는다.
+   */
+  const setAll = async (next: boolean) => {
+    if (busyId) return;
+    const targets = data.maps.filter((m) => m.isPublic !== next);
+    setConfirmingAll(false);
+    if (targets.length === 0) return;
+    setBusyId('*');
+    setError(null);
+    try {
+      // 동기화는 맵마다 하지 않고 한 번만 — 전체를 올리는 동작이라 한 번이면 충분하다
+      if (next) await syncNow();
+      for (const m of targets) {
+        await setMapPublic(m.id, m.title, next);
+        if (next) track('map_published', { map_id: m.id });
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyId(null);
+      bump(); // 성공이든 중간 실패든 실제 상태를 다시 읽는다
+    }
+  };
+
   const copy = async (map: MyMapPublish) => {
     if (!map.slug) return;
     await navigator.clipboard.writeText(mapUrl(map.slug));
@@ -230,6 +261,45 @@ function PublishTab() {
             서버에 올라간 맵이 없습니다. 툴바의 동기화를 먼저 눌러 주세요.
           </p>
         ) : (
+          <>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            {!confirmingAll ? (
+              <>
+                <button
+                  className="rounded bg-slate-800 px-2.5 py-1 text-[11px] text-slate-200 hover:bg-slate-700 disabled:opacity-40"
+                  onClick={() => setConfirmingAll(true)}
+                  disabled={busyId !== null || data.handle === null || publicCount === data.maps.length}
+                >
+                  전체 공개
+                </button>
+                <button
+                  className="rounded bg-slate-800 px-2.5 py-1 text-[11px] text-slate-200 hover:bg-slate-700 disabled:opacity-40"
+                  onClick={() => setAll(false)}
+                  disabled={busyId !== null || publicCount === 0}
+                >
+                  전체 비공개
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="text-[11px] text-amber-300">
+                  비공개인 맵 {data.maps.length - publicCount}개가 모두 공개됩니다.
+                </span>
+                <button
+                  className="rounded bg-emerald-700 px-2.5 py-1 text-[11px] text-white hover:bg-emerald-600"
+                  onClick={() => setAll(true)}
+                >
+                  모두 공개
+                </button>
+                <button
+                  className="rounded bg-slate-800 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-slate-700"
+                  onClick={() => setConfirmingAll(false)}
+                >
+                  취소
+                </button>
+              </>
+            )}
+          </div>
           <ul className="divide-y divide-slate-800 rounded-lg border border-slate-800">
             {data.maps.map((m) => (
               <li key={m.id} className="flex items-center gap-2 px-3 py-2">
@@ -264,6 +334,7 @@ function PublishTab() {
               </li>
             ))}
           </ul>
+          </>
         )}
         {busyId && <p className="mt-2 text-[11px] text-slate-500">처리 중… (켤 때는 먼저 동기화합니다)</p>}
         {data.handle === null && data.maps.length > 0 && (
