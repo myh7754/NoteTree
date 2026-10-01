@@ -70,6 +70,9 @@ export function initAnalytics() {
     api_host: host,
     autocapture: false, // 켜면 클릭한 요소의 텍스트(=노드 라벨)가 따라 들어간다
     disable_session_recording: true, // 화면에 노트 본문이 떠 있다
+    disable_surveys: true, // 쓰지 않는다. 켜두면 대시보드에서 설문을 만드는 순간 앱에 뜬다
+    // 기본값에 맡기지 않는다 — 버전에 따라 동작이 달라 첫 검증 때 $pageview가 빠졌다.
+    capture_pageview: true,
     person_profiles: 'identified_only',
   });
 }
