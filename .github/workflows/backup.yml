@@ -28,6 +28,16 @@ on:
 jobs:
   dump:
     runs-on: ubuntu-latest
+    # 복원 리허설용 빈 Postgres. 복원해 보지 않은 백업은 백업이 아니다.
+    services:
+      verify:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: verify
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+        ports:
+          - 5432:5432
     steps:
       - name: Postgres 17 클라이언트 설치
         # 서버가 PG17이라 러너 기본 pg_dump(구버전)로는 덤프가 거부된다.
@@ -71,6 +81,32 @@ jobs:
           COPIES=$(zcat "$OUT.gz" | grep -c "COPY public\.maps" || true)
           echo "maps COPY 구문 $COPIES 개"
           [ "$COPIES" -ge 1 ] || { echo "maps 데이터가 덤프에 없다 — 실패 처리"; exit 1; }
+
+      - name: 복원 리허설
+        # 덤프가 "열리기만" 하는지가 아니라 **되살아나는지**를 본다.
+        # 원본 행 수와 복원 후 행 수가 같아야 통과.
+        env:
+          DB_URL: ${{ secrets.BACKUP_DB_URL }}
+          PGBIN: /usr/lib/postgresql/17/bin
+        run: |
+          LOCAL="postgresql://postgres:verify@localhost:5432/postgres"
+          SRC=$("$PGBIN/psql" "$DB_URL" -tAc "select count(*) from public.maps")
+          echo "원본 maps 행 수: $SRC"
+
+          # auth 스키마는 Supabase 전용 롤·확장을 참조할 수 있어 일부 구문이 실패한다.
+          # 목적은 완전 복제가 아니라 "데이터가 살아나는가"이므로 멈추지 않고 진행한다.
+          zcat backup/dumps/mindmap-*.sql.gz | "$PGBIN/psql" "$LOCAL" -v ON_ERROR_STOP=0 -q > /tmp/restore.log 2>&1 || true
+          tail -5 /tmp/restore.log
+
+          DST=$("$PGBIN/psql" "$LOCAL" -tAc "select count(*) from public.maps")
+          echo "복원된 maps 행 수: $DST"
+          [ "$SRC" = "$DST" ] || { echo "복원 결과가 원본과 다르다 ($SRC vs $DST) — 실패 처리"; exit 1; }
+
+          # 내용까지 한 겹 더: 노드가 들어 있는지 (빈 껍데기 복원 방지)
+          NODES=$("$PGBIN/psql" "$LOCAL" -tAc \
+            "select coalesce(sum(jsonb_array_length(coalesce(jsonb_path_query_array(data->'nodes','\$.keyvalue()'),'[]'::jsonb))),0) from public.maps")
+          echo "복원된 노드 총합: $NODES"
+          [ "$NODES" -gt 0 ] || { echo "복원된 맵에 노드가 없다 — 실패 처리"; exit 1; }
 
       - name: 커밋
         working-directory: backup
