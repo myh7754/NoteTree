@@ -15,25 +15,33 @@ describe('parseRoute', () => {
     expect(parseRoute('/u/myh')).toEqual({ kind: 'profile', handle: 'myh' });
   });
 
-  it('/m/<슬러그> 는 공개 맵', () => {
-    expect(parseRoute('/m/자바-a1b2c3')).toEqual({ kind: 'map', slug: '자바-a1b2c3' });
+  it('/m/<닉네임>/<슬러그> 는 공개 맵', () => {
+    expect(parseRoute('/m/myh/자바')).toEqual({ kind: 'map', handle: 'myh', slug: '자바' });
   });
 
   it('인코딩된 한글 슬러그를 되돌린다', () => {
-    expect(parseRoute('/m/%EC%9E%90%EB%B0%94-a1b2c3')).toEqual({
+    expect(parseRoute('/m/myh/%EC%9E%90%EB%B0%94')).toEqual({
       kind: 'map',
-      slug: '자바-a1b2c3',
+      handle: 'myh',
+      slug: '자바',
     });
+  });
+
+  it('/m/<조각 하나> 는 예전 주소 — 새 주소로 넘겨줄 대상이다', () => {
+    expect(parseRoute('/m/자바-a1b2c3')).toEqual({ kind: 'legacyMap', slug: '자바-a1b2c3' });
   });
 
   it('깨진 인코딩에도 죽지 않고 앱으로 떨어진다', () => {
     expect(parseRoute('/m/%E0%A4%A')).toEqual({ kind: 'app' });
+    expect(parseRoute('/m/myh/%E0%A4%A')).toEqual({ kind: 'app' });
   });
 
   it('조각 수가 안 맞으면 앱', () => {
     expect(parseRoute('/u')).toEqual({ kind: 'app' });
     expect(parseRoute('/u/')).toEqual({ kind: 'app' });
     expect(parseRoute('/u/a/b')).toEqual({ kind: 'app' });
+    expect(parseRoute('/m')).toEqual({ kind: 'app' });
+    expect(parseRoute('/m/a/b/c')).toEqual({ kind: 'app' });
   });
 
   it('나머지는 앱', () => {

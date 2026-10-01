@@ -4,6 +4,7 @@ import { useMindMapStore } from '../store/useMindMapStore';
 import { saveMindMap } from '../db/mindmapDB';
 import { createTabSync, type TabSync } from '../db/tabSync';
 import { pushMap } from '../db/cloudSync';
+import { maybeAutoPublish } from '../db/publish';
 
 const AUTOSAVE_DELAY = 500;
 
@@ -48,7 +49,13 @@ export function useAutosave(
           syncRef.current?.notifySaved(mindMapData.id, updatedAt);
           // 로그인해 있으면 클라우드에도 올린다. 실패해도 로컬 저장은 이미 끝났으므로
           // 저장 상태를 실패로 되돌리지 않고 조용히 넘긴다 (다음 동기화가 따라잡는다).
-          pushMap(mindMapData.id).catch(() => {});
+          pushMap(mindMapData.id)
+            // 전체 공개를 켜 둔 사람이면 새로 올라간 맵도 공개한다 (맵마다 한 번만 확인)
+            .then(() => maybeAutoPublish(mindMapData.id, mindMapData.title))
+            .then((published) => {
+              if (published) useMindMapStore.getState().bumpPublishRevision();
+            })
+            .catch(() => {});
         })
         .catch((err: unknown) => {
           const message = err instanceof Error ? err.message : String(err);

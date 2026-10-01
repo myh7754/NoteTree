@@ -3,7 +3,14 @@ import { useMindMapStore } from '../../store/useMindMapStore';
 import { useAuth } from '../../hooks/useAuth';
 import { deleteAccount } from '../../db/account';
 import { syncNow } from '../../db/cloudSync';
-import { getMyHandle, listMyMapsPublish, setMapPublic, type MyMapPublish } from '../../db/publish';
+import {
+  getMyHandle,
+  getAutoPublic,
+  setAutoPublic,
+  listMyMapsPublish,
+  setMapPublic,
+  type MyMapPublish,
+} from '../../db/publish';
 import { handleUrl, mapUrl } from '../../utils/publish';
 import { track } from '../../lib/analytics';
 import { HandleForm } from '../Toolbar/HandleForm';
@@ -149,6 +156,7 @@ function PublishTab() {
   const [loaded, setLoaded] = useState<{
     revision: number;
     handle: string | null;
+    autoPublic: boolean;
     maps: MyMapPublish[];
   } | null>(null);
   const data = loaded?.revision === revision ? loaded : null;
@@ -161,8 +169,10 @@ function PublishTab() {
   useEffect(() => {
     if (!session) return;
     let alive = true;
-    Promise.all([getMyHandle(), listMyMapsPublish()])
-      .then(([handle, maps]) => alive && setLoaded({ revision, handle, maps }))
+    Promise.all([getMyHandle(), getAutoPublic(), listMyMapsPublish()])
+      .then(
+        ([handle, autoPublic, maps]) => alive && setLoaded({ revision, handle, autoPublic, maps })
+      )
       .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)));
     return () => {
       alive = false;
@@ -200,6 +210,9 @@ function PublishTab() {
   /**
    * 전체 공개 / 전체 비공개.
    *
+   * 전체 공개는 "지금 있는 맵을 다 켠다"에서 끝나지 않고 **모드**로 남는다 —
+   * 켜 두면 앞으로 만드는 맵도 공개된다. 맵 하나를 개별로 끄면 모드도 꺼진다.
+   *
    * 이미 원하는 상태인 맵은 건드리지 않는다. 하나가 실패하면 거기서 멈추고,
    * 그때까지 바뀐 것은 그대로 둔 채 목록을 다시 읽어 실제 상태를 보여준다 —
    * "전부 됐다"거나 "전부 안 됐다"고 뭉개지 않는다.
@@ -208,7 +221,6 @@ function PublishTab() {
     if (busyId) return;
     const targets = data.maps.filter((m) => m.isPublic !== next);
     setConfirmingAll(false);
-    if (targets.length === 0) return;
     setBusyId('*');
     setError(null);
     try {
@@ -218,6 +230,8 @@ function PublishTab() {
         await setMapPublic(m.id, m.title, next);
         if (next) track('map_published', { map_id: m.id });
       }
+      // 전부 성공한 뒤에만 모드를 바꾼다. 중간에 실패했는데 "전체 공개"로 표시되면 거짓이다.
+      await setAutoPublic(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -228,13 +242,16 @@ function PublishTab() {
 
   const copy = async (map: MyMapPublish) => {
     if (!map.slug) return;
-    await navigator.clipboard.writeText(mapUrl(map.slug));
+    if (!data.handle) return;
+    await navigator.clipboard.writeText(mapUrl(data.handle, map.slug));
     setCopiedId(map.id);
     setTimeout(() => setCopiedId(null), 1500);
   };
 
   const publicCount = data.maps.filter((m) => m.isPublic).length;
-  const allPublic = data.maps.length > 0 && publicCount === data.maps.length;
+  // 토글은 "전부 공개인가"가 아니라 **전체 공개 모드인가**를 보여준다.
+  // 모드가 켜져 있으면 앞으로 만드는 맵도 공개된다.
+  const allPublic = data.autoPublic;
 
   return (
     <div className="space-y-5">
@@ -263,11 +280,16 @@ function PublishTab() {
           </p>
         ) : (
           <>
-          {/* 전체 토글. 전부 공개일 때만 켜진 것으로 보인다 — 일부만 공개인데 켜진 것처럼
-              보이면 "다 공개했다"고 오해한다. */}
+          {/* 전체 토글 = 전체 공개 모드. 켜 두면 새로 만드는 맵도 공개된다.
+              맵 하나를 개별로 끄면 이 모드도 같이 꺼진다. */}
           <div className="mb-2 rounded-lg border border-slate-800 px-3 py-2">
             <div className="flex items-center gap-2">
-              <div className="min-w-0 flex-1 text-xs font-medium text-slate-200">전체 공개</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-medium text-slate-200">전체 공개</div>
+                <div className="text-[10px] text-slate-500">
+                  켜 두면 앞으로 만드는 맵도 자동으로 공개됩니다.
+                </div>
+              </div>
               {publicCount > 0 && !allPublic && (
                 <button
                   className="text-[10px] text-slate-500 hover:text-slate-300 disabled:opacity-40"
@@ -297,7 +319,7 @@ function PublishTab() {
             {confirmingAll && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="text-[11px] text-amber-300">
-                  비공개인 맵 {data.maps.length - publicCount}개가 모두 공개됩니다.
+                  지금 있는 맵 {data.maps.length}개와 앞으로 만드는 맵이 모두 공개됩니다.
                 </span>
                 <button
                   className="rounded bg-emerald-700 px-2.5 py-1 text-[11px] text-white hover:bg-emerald-600"
@@ -325,7 +347,7 @@ function PublishTab() {
                       onClick={() => copy(m)}
                       title="눌러서 링크 복사"
                     >
-                      {copiedId === m.id ? '복사했습니다' : `/m/${m.slug} · 복사`}
+                      {copiedId === m.id ? '복사했습니다' : `/m/${data.handle}/${m.slug} · 복사`}
                     </button>
                   )}
                 </div>

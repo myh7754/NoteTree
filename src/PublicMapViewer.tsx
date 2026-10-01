@@ -8,18 +8,19 @@ import { AccountMenu } from './components/Toolbar/AccountMenu';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useMindMapStore } from './store/useMindMapStore';
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
-import { loadPublicMapBySlug, loadPublicOwnerBySlug, type PublicOwner } from './db/publish';
+import { loadPublicMap, type PublicOwner } from './db/publish';
+import { mapPath } from './utils/publish';
 import { pickInitialDepth } from './utils/initialDepth';
 
 const noop = () => {};
 
 /**
- * 공개 맵 하나를 읽기전용으로 보여준다 (/m/<슬러그>).
+ * 공개 맵 하나를 읽기전용으로 보여준다 (/m/<닉네임>/<슬러그>).
  *
  * 안전은 readOnly 플래그가 아니라 "저장 경로가 없다"에 기댄다: 여기엔 useAutosave도
  * syncNow도 없다. 플래그를 빠뜨려 뭔가 바뀌어도 IndexedDB·DB 어디에도 쓰이지 않는다.
  */
-export function PublicMapViewer({ slug }: { slug: string }) {
+export function PublicMapViewer({ handle, slug }: { handle: string; slug: string }) {
   const mindMapData = useMindMapStore((s) => s.mindMapData);
   const openMap = useMindMapStore((s) => s.openMap);
   const expandToLevel = useMindMapStore((s) => s.expandToLevel);
@@ -28,39 +29,27 @@ export function PublicMapViewer({ slug }: { slug: string }) {
 
   const [state, setState] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading');
   const [map, setMap] = useState<MindMapData | null>(null);
-  // 어느 슬러그의 결과인지 함께 든다 (다른 맵으로 옮기는 사이 옛 목록이 비치지 않게)
-  const [ownerOf, setOwnerOf] = useState<{ slug: string; owner: PublicOwner | null } | null>(null);
-  const owner = ownerOf?.slug === slug ? ownerOf.owner : null;
-
-  // 주인과 다른 공개 맵 목록. 맵 본문과 따로 읽는다 — 이게 실패해도 맵은 보여야 한다.
-  useEffect(() => {
-    let alive = true;
-    loadPublicOwnerBySlug(slug)
-      .then((o) => alive && setOwnerOf({ slug, owner: o }))
-      .catch(() => alive && setOwnerOf({ slug, owner: null }));
-    return () => {
-      alive = false;
-    };
-  }, [slug]);
+  const [owner, setOwner] = useState<PublicOwner | null>(null);
 
   useEffect(() => {
     useMindMapStore.setState({ readOnly: true });
-    loadPublicMapBySlug(slug)
+    loadPublicMap(handle, slug)
       .then((found) => {
         if (!found) {
           setState('missing');
           return;
         }
         // 저장된 좌표는 쓰지 않는다 — 방문자는 항상 정돈된 배치를 본다
-        openMap(found, {});
+        openMap(found.map, {});
         // 깊이를 고정하지 않는다 — 맵마다 모양이 달라 같은 깊이가 전혀 다른 결과를 낸다.
-        expandToLevel(pickInitialDepth(found));
-        setMap(found);
+        expandToLevel(pickInitialDepth(found.map));
+        setMap(found.map);
+        setOwner(found.owner);
         setState('ready');
       })
       .catch(() => setState('error'));
     return () => useMindMapStore.setState({ readOnly: false });
-  }, [slug, openMap, expandToLevel]);
+  }, [handle, slug, openMap, expandToLevel]);
 
   useGlobalShortcuts(noop, noop);
 
@@ -78,7 +67,7 @@ export function PublicMapViewer({ slug }: { slug: string }) {
           <select
             className="bg-slate-800 text-sm font-semibold text-slate-200 rounded px-1.5 py-0.5 outline-none"
             value={slug}
-            onChange={(e) => location.assign(`/m/${encodeURIComponent(e.target.value)}`)}
+            onChange={(e) => location.assign(mapPath(handle, e.target.value))}
             aria-label="이 사람의 다른 공개 맵"
           >
             {owner.maps.map((m) => (

@@ -57,63 +57,96 @@ export async function loadPublicMapsByHandle(
   }));
 }
 
-/** 슬러그 → 공개 맵 하나. 없거나 비공개면 null. */
-export async function loadPublicMapBySlug(slug: string): Promise<MindMapData | null> {
-  if (!supabase) return null;
-  const { data, error } = await supabase
-    .from('maps')
-    .select('data')
-    .eq('slug', slug)
-    .eq('is_public', true)
-    .is('deleted_at', null)
-    .maybeSingle();
-  if (error) throw new Error(`맵을 읽지 못했습니다: ${error.message}`);
-  return (data?.data as MindMapData) ?? null;
-}
-
 export interface PublicOwner {
   handle: string;
   /** 그 사람이 공개한 맵 전부 (지금 보고 있는 것 포함). 본문은 싣지 않는다. */
   maps: { title: string; slug: string }[];
 }
 
-/**
- * 공개 맵의 주인과, 그 사람이 공개한 다른 맵들.
- *
- * 뷰어에서 "이 사람의 다른 맵"으로 옮겨 다니기 위한 것이다. 링크 하나를 받은 사람이
- * 그 사람이 공개한 나머지도 볼 수 있어야 한다 — 공개로 켰다는 건 보여주겠다는 뜻이다.
- * 비공개 맵은 RLS가 걸러서 여기에 절대 섞이지 않는다.
- */
-export async function loadPublicOwnerBySlug(slug: string): Promise<PublicOwner | null> {
-  if (!supabase) return null;
-  const { data: row } = await supabase
-    .from('maps')
-    .select('owner_id')
-    .eq('slug', slug)
-    .eq('is_public', true)
-    .is('deleted_at', null)
-    .maybeSingle();
-  if (!row) return null;
+export interface PublicMap {
+  map: MindMapData;
+  owner: PublicOwner;
+}
 
-  const [{ data: profile }, { data: maps }] = await Promise.all([
-    supabase.from('profiles').select('handle').eq('user_id', row.owner_id).maybeSingle(),
+/**
+ * 닉네임 + 슬러그 → 공개 맵 하나와, 그 사람이 공개한 다른 맵 목록.
+ *
+ * 목록을 같이 주는 이유: 링크 하나를 받은 사람이 그 사람이 공개한 나머지도 볼 수
+ * 있어야 한다 — 공개로 켰다는 건 보여주겠다는 뜻이다. 비공개 맵은 RLS가 걸러서
+ * 여기에 절대 섞이지 않는다.
+ *
+ * 없는 닉네임이거나, 그 사람에게 그런 공개 맵이 없으면 null.
+ */
+export async function loadPublicMap(handle: string, slug: string): Promise<PublicMap | null> {
+  if (!supabase) return null;
+
+  const { data: profile, error: profileErr } = await supabase
+    .from('profiles')
+    .select('user_id')
+    .eq('handle', handle)
+    .maybeSingle();
+  if (profileErr) throw new Error(`사용자를 찾지 못했습니다: ${profileErr.message}`);
+  if (!profile) return null;
+
+  const [mapRes, listRes] = await Promise.all([
+    supabase
+      .from('maps')
+      .select('data')
+      .eq('owner_id', profile.user_id)
+      .eq('slug', slug)
+      .eq('is_public', true)
+      .is('deleted_at', null)
+      .maybeSingle(),
     supabase
       .from('maps')
       .select('title, slug')
-      .eq('owner_id', row.owner_id)
+      .eq('owner_id', profile.user_id)
       .eq('is_public', true)
       .is('deleted_at', null)
       .order('updated_at', { ascending: false }),
   ]);
-  if (!profile?.handle) return null;
+  if (mapRes.error) throw new Error(`맵을 읽지 못했습니다: ${mapRes.error.message}`);
+  if (!mapRes.data) return null;
 
   return {
-    handle: profile.handle as string,
-    maps: (maps ?? []).map((m) => ({
-      title: (m.title as string) || '제목 없음',
-      slug: m.slug as string,
-    })),
+    map: mapRes.data.data as MindMapData,
+    owner: {
+      handle,
+      // 목록을 못 읽어도 맵은 보여준다 — 목록은 부가 기능이다
+      maps: (listRes.data ?? []).map((m) => ({
+        title: (m.title as string) || '제목 없음',
+        slug: m.slug as string,
+      })),
+    },
   };
+}
+
+/**
+ * 옛 주소(/m/<제목-난수6자>) → 새 주소의 닉네임과 슬러그.
+ *
+ * 2026-10-02에 주소를 /m/<닉네임>/<슬러그>로 바꾸면서, 그 전에 보낸 링크가 깨지지
+ * 않도록 옛 슬러그를 legacy_slug 컬럼에 남겨 두었다. 못 찾으면 null.
+ */
+export async function resolveLegacySlug(
+  legacySlug: string
+): Promise<{ handle: string; slug: string } | null> {
+  if (!supabase) return null;
+  const { data: row } = await supabase
+    .from('maps')
+    .select('owner_id, slug')
+    .eq('legacy_slug', legacySlug)
+    .eq('is_public', true)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (!row?.slug) return null;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('handle')
+    .eq('user_id', row.owner_id)
+    .maybeSingle();
+  if (!profile?.handle) return null;
+  return { handle: profile.handle as string, slug: row.slug as string };
 }
 
 /** 로그인한 본인의 닉네임. 아직 안 정했으면 null. */
@@ -211,6 +244,9 @@ export async function listMyMapsPublish(): Promise<MyMapPublish[]> {
  *
  * 슬러그는 **처음 켤 때 한 번만** 만든다. 껐다 켜도, 제목을 바꿔도 그대로다 —
  * 안 그러면 남에게 보낸 링크가 조용히 깨진다.
+ *
+ * 맵 하나를 끄면 "전체 공개" 모드도 같이 꺼진다. 일부를 비공개로 돌린 사람에게
+ * 새 맵을 계속 자동으로 공개하는 건 그 사람의 뜻과 어긋난다.
  */
 export async function setMapPublic(
   mapId: string,
@@ -218,18 +254,89 @@ export async function setMapPublic(
   isPublic: boolean
 ): Promise<PublishState> {
   if (!supabase) throw new Error('클라우드가 꺼져 있습니다.');
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (!userId) throw new Error('로그인이 필요합니다.');
 
   const current = await getPublishState(mapId);
-  const slug = current.slug ?? (isPublic ? makeSlug(title) : null);
+  let slug = current.slug;
+  if (!slug && isPublic) {
+    // 내가 이미 쓰는 슬러그를 피한다 (비공개로 돌린 맵의 것도 포함 — 다시 켤 수 있으므로)
+    const { data: mine, error: listErr } = await supabase
+      .from('maps')
+      .select('slug')
+      .eq('owner_id', userId)
+      .not('slug', 'is', null);
+    if (listErr) throw new Error(`공개 설정을 바꾸지 못했습니다: ${listErr.message}`);
+    slug = makeSlug(title, (mine ?? []).map((r) => r.slug as string));
+  }
 
   const { error } = await supabase
     .from('maps')
     .update({ is_public: isPublic, slug })
     .eq('id', mapId);
   if (error) {
-    // 슬러그가 겹치는 일은 난수 6자라 거의 없지만, 났다면 다시 누르면 다른 난수가 나온다.
+    // 다른 탭에서 동시에 같은 제목을 공개한 경우. 다시 누르면 다음 번호가 붙는다.
     if (error.code === '23505') throw new Error('주소가 겹쳤습니다. 다시 눌러 주세요.');
     throw new Error(`공개 설정을 바꾸지 못했습니다: ${error.message}`);
   }
+
+  if (!isPublic) await setAutoPublic(false);
   return { isPublic, slug };
+}
+
+/** "전체 공개" 모드인가 — 켜져 있으면 새로 만드는 맵도 공개된다. */
+export async function getAutoPublic(): Promise<boolean> {
+  if (!supabase) return false;
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (!userId) return false;
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('auto_public')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) throw new Error(`공개 설정을 읽지 못했습니다: ${error.message}`);
+  return Boolean(data?.auto_public);
+}
+
+export async function setAutoPublic(value: boolean): Promise<void> {
+  if (!supabase) return;
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (!userId) return;
+  const { error } = await supabase
+    .from('profiles')
+    .update({ auto_public: value })
+    .eq('user_id', userId);
+  if (error) throw new Error(`공개 설정을 저장하지 못했습니다: ${error.message}`);
+  autoPublishChecked.clear();
+}
+
+/**
+ * 이번 세션에서 이미 확인한 맵. 자동 저장은 0.5초마다 올 수 있어서, 맵마다 한 번만
+ * 서버에 물어본다. 전체 공개 설정이 바뀌면 비운다.
+ */
+const autoPublishChecked = new Set<string>();
+
+/**
+ * 전체 공개 모드면, 방금 서버에 올라간 **새 맵**을 공개한다. 공개했으면 true.
+ *
+ * "새 맵"의 기준은 슬러그가 한 번도 만들어진 적 없는 것이다. 슬러그가 있는데
+ * 비공개인 맵은 사용자가 직접 끈 것이므로 건드리지 않는다.
+ */
+export async function maybeAutoPublish(mapId: string, title: string): Promise<boolean> {
+  if (!supabase || autoPublishChecked.has(mapId)) return false;
+  autoPublishChecked.add(mapId);
+  try {
+    if (!(await getAutoPublic())) return false;
+    const state = await getPublishState(mapId);
+    if (state.isPublic || state.slug !== null) return false;
+    await setMapPublic(mapId, title, true);
+    return true;
+  } catch {
+    // 실패하면 다음 저장 때 다시 시도한다. 저장 자체를 막을 일은 아니다.
+    autoPublishChecked.delete(mapId);
+    return false;
+  }
 }

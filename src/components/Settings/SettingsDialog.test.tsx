@@ -8,12 +8,16 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 const deleteAccount = vi.fn().mockResolvedValue(undefined);
 vi.mock('../../db/account', () => ({ deleteAccount: () => deleteAccount() }));
 const getMyHandle = vi.fn();
+const getAutoPublic = vi.fn();
+const setAutoPublic = vi.fn();
 const listMyMapsPublish = vi.fn();
 const setMapPublic = vi.fn();
 const syncNow = vi.fn();
 const calls: string[] = []; // 호출 순서를 본다 — 켤 때 동기화가 먼저여야 한다
 vi.mock('../../db/publish', () => ({
   getMyHandle: () => getMyHandle(),
+  getAutoPublic: () => getAutoPublic(),
+  setAutoPublic: (...a: unknown[]) => setAutoPublic(...a),
   listMyMapsPublish: () => listMyMapsPublish(),
   setMapPublic: (...a: unknown[]) => setMapPublic(...a),
   claimHandle: vi.fn(),
@@ -37,6 +41,8 @@ beforeEach(() => {
   useMindMapStore.setState({ isSettingsOpen: true, notePanelSide: 'right', publishRevision: 0 });
   calls.length = 0;
   getMyHandle.mockReset().mockResolvedValue('myh');
+  getAutoPublic.mockReset().mockResolvedValue(false);
+  setAutoPublic.mockReset().mockResolvedValue(undefined);
   listMyMapsPublish.mockReset().mockResolvedValue([
     { id: 'a', title: '자바', isPublic: true, slug: '자바-a1b2c3' },
     { id: 'b', title: 'DB', isPublic: false, slug: null },
@@ -179,10 +185,21 @@ describe('SettingsDialog 공개 탭', () => {
 describe('SettingsDialog 전체 공개 토글', () => {
   const master = () => screen.getByRole('switch', { name: '전체 공개' });
 
-  it('일부만 공개면 꺼진 것으로 보인다 — 켜져 보이면 다 공개했다고 오해한다', async () => {
+  it('토글은 전체 공개 모드를 보여준다 — 전부 공개여도 모드가 꺼져 있으면 꺼진 것', async () => {
+    listMyMapsPublish.mockResolvedValue([
+      { id: 'a', title: '자바', isPublic: true, slug: 's1' },
+      { id: 'b', title: 'DB', isPublic: true, slug: 's2' },
+    ]);
     render(<SettingsDialog />);
     await openPublishTab();
     expect(master()).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('모드가 켜져 있으면 켜진 것으로 보인다', async () => {
+    getAutoPublic.mockResolvedValue(true);
+    render(<SettingsDialog />);
+    await openPublishTab();
+    expect(master()).toHaveAttribute('aria-checked', 'true');
   });
 
   it('켜려고 누르면 바로 실행되지 않고 한 번 더 묻는다', async () => {
@@ -190,17 +207,29 @@ describe('SettingsDialog 전체 공개 토글', () => {
     await openPublishTab();
     fireEvent.click(master());
     expect(setMapPublic).not.toHaveBeenCalled();
-    expect(screen.getByText(/비공개인 맵 1개가 모두 공개됩니다/)).toBeInTheDocument();
+    expect(setAutoPublic).not.toHaveBeenCalled();
+    expect(screen.getByText(/앞으로 만드는 맵이 모두 공개됩니다/)).toBeInTheDocument();
   });
 
-  it('확인하면 비공개였던 맵만 켠다 — 동기화는 한 번만', async () => {
+  it('확인하면 비공개였던 맵을 켜고 모드를 켠다 — 동기화는 한 번만', async () => {
     render(<SettingsDialog />);
     await openPublishTab();
     fireEvent.click(master());
     fireEvent.click(screen.getByText('모두 공개'));
-    await waitFor(() => expect(setMapPublic).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(setAutoPublic).toHaveBeenCalledWith(true));
+    expect(setMapPublic).toHaveBeenCalledTimes(1);
     expect(setMapPublic).toHaveBeenCalledWith('b', 'DB', true);
     expect(calls).toEqual(['sync', 'set']);
+  });
+
+  it('이미 전부 공개여도 확인하면 모드를 켠다 (새 맵을 위해)', async () => {
+    listMyMapsPublish.mockResolvedValue([{ id: 'a', title: '자바', isPublic: true, slug: 's1' }]);
+    render(<SettingsDialog />);
+    await openPublishTab();
+    fireEvent.click(master());
+    fireEvent.click(screen.getByText('모두 공개'));
+    await waitFor(() => expect(setAutoPublic).toHaveBeenCalledWith(true));
+    expect(setMapPublic).not.toHaveBeenCalled();
   });
 
   it('취소하면 아무것도 바뀌지 않는다', async () => {
@@ -209,25 +238,26 @@ describe('SettingsDialog 전체 공개 토글', () => {
     fireEvent.click(master());
     fireEvent.click(screen.getByText('취소'));
     expect(setMapPublic).not.toHaveBeenCalled();
+    expect(setAutoPublic).not.toHaveBeenCalled();
     expect(screen.queryByText('모두 공개')).not.toBeInTheDocument();
   });
 
-  it('전부 공개일 때 누르면 전부 끈다 (확인 없이, 동기화 없이)', async () => {
+  it('켜진 상태에서 누르면 전부 끄고 모드도 끈다 (확인 없이, 동기화 없이)', async () => {
+    getAutoPublic.mockResolvedValue(true);
     listMyMapsPublish.mockResolvedValue([
       { id: 'a', title: '자바', isPublic: true, slug: 's1' },
       { id: 'b', title: 'DB', isPublic: true, slug: 's2' },
     ]);
     render(<SettingsDialog />);
     await openPublishTab();
-    expect(master()).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(master());
-    await waitFor(() => expect(setMapPublic).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(setAutoPublic).toHaveBeenCalledWith(false));
     expect(setMapPublic).toHaveBeenCalledWith('a', '자바', false);
     expect(setMapPublic).toHaveBeenCalledWith('b', 'DB', false);
     expect(syncNow).not.toHaveBeenCalled();
   });
 
-  it('일부만 공개일 때는 "모두 끄기"로 공개 중인 것만 끈다', async () => {
+  it('모드가 꺼져 있고 일부가 공개일 때는 "모두 끄기"로 공개 중인 것만 끈다', async () => {
     render(<SettingsDialog />);
     await openPublishTab();
     fireEvent.click(screen.getByText('모두 끄기'));
@@ -235,7 +265,7 @@ describe('SettingsDialog 전체 공개 토글', () => {
     expect(setMapPublic).toHaveBeenCalledWith('a', '자바', false);
   });
 
-  it('중간에 실패해도 목록을 다시 읽어 실제 상태를 보여준다', async () => {
+  it('중간에 실패하면 모드를 켜지 않고, 목록을 다시 읽어 실제 상태를 보여준다', async () => {
     listMyMapsPublish.mockResolvedValue([
       { id: 'a', title: '자바', isPublic: false, slug: null },
       { id: 'b', title: 'DB', isPublic: false, slug: null },
@@ -249,6 +279,7 @@ describe('SettingsDialog 전체 공개 토글', () => {
     fireEvent.click(screen.getByText('모두 공개'));
     await waitFor(() => expect(useMindMapStore.getState().publishRevision).toBe(1));
     expect(setMapPublic).toHaveBeenCalledTimes(2);
+    expect(setAutoPublic).not.toHaveBeenCalled();
   });
 
   it('닉네임이 없으면 잠긴다', async () => {

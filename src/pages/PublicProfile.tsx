@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { loadPublicMapsByHandle, type PublicMapSummary } from '../db/publish';
+import { mapPath } from '../utils/publish';
 
 /**
  * 공개 목록 (/u/<닉네임>) — 그 사람이 공개로 켠 맵들.
@@ -43,7 +44,7 @@ export function PublicProfile({ handle }: { handle: string }) {
             {maps.map((m) => (
               <li key={m.id}>
                 <a
-                  href={`/m/${encodeURIComponent(m.slug)}`}
+                  href={mapPath(handle, m.slug)}
                   className="block rounded-lg border border-slate-800 bg-slate-900 p-4 hover:border-indigo-600 hover:bg-slate-800/60"
                 >
                   <div className="truncate text-sm font-semibold text-slate-100">{m.title}</div>

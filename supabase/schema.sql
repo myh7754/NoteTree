@@ -84,15 +84,22 @@ create policy "본인 닉네임만 수정"
 alter table public.maps add column if not exists is_public boolean not null default false;
 alter table public.maps add column if not exists slug text;
 
-do $$
-begin
-  if not exists (select 1 from pg_constraint where conname = 'maps_slug_key') then
-    alter table public.maps add constraint maps_slug_key unique (slug);
-  end if;
-end $$;
+-- 공개 주소는 /m/<닉네임>/<슬러그> 이다 (2026-10-02부터). 닉네임이 주소에 들어가므로
+-- 슬러그는 **그 사람 안에서만** 겹치지 않으면 된다. 그 전에는 전체에서 유일해야 해서
+-- 제목 뒤에 난수 6자를 붙였다 — 그때 만든 값은 legacy_slug에 남겨, 이미 보낸 옛 링크
+-- (/m/<제목-난수>)로 들어온 사람을 새 주소로 넘겨준다.
+-- 이전 절차는 migrations/2026-10-02-handle-urls-and-auto-public.sql 참고.
+alter table public.maps add column if not exists legacy_slug text;
+alter table public.maps drop constraint if exists maps_slug_key;
+create unique index if not exists maps_owner_slug_key on public.maps (owner_id, slug);
+create index if not exists maps_legacy_slug_idx on public.maps (legacy_slug);
 
--- /m/<슬러그> 조회용. 대부분의 행은 비공개이므로 공개된 것만 인덱스에 넣는다.
+-- 대부분의 행은 비공개이므로 공개된 것만 인덱스에 넣는다.
 create index if not exists maps_slug_idx on public.maps (slug) where is_public;
+
+-- "전체 공개" 모드. 켜 두면 앱이 새로 만든 맵도 공개로 켠다.
+-- 맵 하나를 개별로 끄면 앱이 이 값도 끈다.
+alter table public.profiles add column if not exists auto_public boolean not null default false;
 
 drop policy if exists "공개 맵은 누구나 조회" on public.maps;
 create policy "공개 맵은 누구나 조회"

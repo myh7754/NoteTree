@@ -160,7 +160,7 @@ export function PublishMenu() {
 
                 {live && state?.slug && (
                   <div className="mt-3 space-y-1">
-                    <LinkRow label="이 맵" url={mapUrl(state.slug)} onCopy={copy} />
+                    <LinkRow label="이 맵" url={mapUrl(handle, state.slug)} onCopy={copy} />
                     <LinkRow label="내 목록" url={handleUrl(handle)} onCopy={copy} />
                     {copied && <div className="text-[10px] text-emerald-400">복사했습니다</div>}
                   </div>

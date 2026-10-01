@@ -1,32 +1,39 @@
 import { describe, it, expect } from 'vitest';
-import { makeSlug, validateHandle, normalizeHandle, mapUrl, handleUrl } from './publish';
+import { makeSlug, validateHandle, normalizeHandle, mapUrl, mapPath, handleUrl } from './publish';
 
 describe('makeSlug', () => {
-  it('제목 뒤에 난수 6자를 붙인다', () => {
-    expect(makeSlug('자바의신')).toMatch(/^자바의신-[0-9a-z]{6}$/);
+  it('제목을 그대로 주소 조각으로 쓴다 (닉네임이 앞에 붙으므로 난수가 필요 없다)', () => {
+    expect(makeSlug('자바의신')).toBe('자바의신');
   });
 
-  it('같은 제목이어도 겹치지 않는다', () => {
-    const slugs = new Set(Array.from({ length: 50 }, () => makeSlug('같은제목')));
-    expect(slugs.size).toBe(50);
-  });
-
-  it('공백과 기호는 하이픈 하나로 모은다', () => {
-    expect(makeSlug('Real MySQL  8.0!!')).toMatch(/^real-mysql-8-0-[0-9a-z]{6}$/);
+  it('공백과 기호는 하이픈 하나로 모으고 소문자로', () => {
+    expect(makeSlug('Real MySQL  8.0!!')).toBe('real-mysql-8-0');
   });
 
   it('양 끝에 하이픈이 남지 않는다', () => {
-    expect(makeSlug('!!! 제목 !!!')).toMatch(/^제목-[0-9a-z]{6}$/);
+    expect(makeSlug('!!! 제목 !!!')).toBe('제목');
   });
 
-  it('제목이 비어도 주소를 만든다', () => {
-    expect(makeSlug('')).toMatch(/^[0-9a-z]{6}$/);
-    expect(makeSlug('!!!')).toMatch(/^[0-9a-z]{6}$/);
+  it('같은 사람이 같은 제목을 또 공개하면 번호가 붙는다', () => {
+    expect(makeSlug('자바', ['자바'])).toBe('자바-2');
+    expect(makeSlug('자바', ['자바', '자바-2'])).toBe('자바-3');
+  });
+
+  it('중간 번호가 비어 있으면 그 자리를 쓴다', () => {
+    expect(makeSlug('자바', ['자바', '자바-3'])).toBe('자바-2');
+  });
+
+  it('다른 제목의 슬러그와는 상관없다', () => {
+    expect(makeSlug('자바', ['db', 'spring'])).toBe('자바');
+  });
+
+  it('제목이 비거나 기호뿐이어도 주소를 만든다', () => {
+    expect(makeSlug('')).toBe('map');
+    expect(makeSlug('!!!', ['map'])).toBe('map-2');
   });
 
   it('아주 긴 제목은 잘라도 하이픈으로 끝나지 않는다', () => {
-    const slug = makeSlug('가'.repeat(100));
-    expect(slug).toMatch(/^가{40}-[0-9a-z]{6}$/);
+    expect(makeSlug('가'.repeat(100))).toBe('가'.repeat(40));
   });
 });
 
@@ -66,12 +73,14 @@ describe('normalizeHandle', () => {
 });
 
 describe('주소 만들기', () => {
-  it('맵과 목록 주소', () => {
-    expect(mapUrl('abc-123', 'https://x.app')).toBe('https://x.app/m/abc-123');
-    expect(handleUrl('myh', 'https://x.app')).toBe('https://x.app/u/myh');
+  it('맵 주소에는 닉네임이 들어간다', () => {
+    expect(mapUrl('myh', '자바', 'https://x.app')).toBe(
+      'https://x.app/m/myh/%EC%9E%90%EB%B0%94'
+    );
+    expect(mapPath('myh', 'db')).toBe('/m/myh/db');
   });
 
-  it('한글 슬러그는 인코딩한다 — 복사한 링크가 채팅앱에서 깨지지 않게', () => {
-    expect(mapUrl('자바-a1b2c3', 'https://x.app')).toBe('https://x.app/m/%EC%9E%90%EB%B0%94-a1b2c3');
+  it('목록 주소', () => {
+    expect(handleUrl('myh', 'https://x.app')).toBe('https://x.app/u/myh');
   });
 });
