@@ -27,23 +27,43 @@ export function PublishMenu() {
   const title = useMindMapStore((s) => s.mindMapData.title);
 
   const [isOpen, setIsOpen] = useState(false);
-  const [state, setState] = useState<PublishState | null>(null);
-  const [handle, setHandle] = useState<string | null>(null);
+  // 어느 맵의 결과인지 함께 들고 있는다. 맵이 바뀌면 값이 저절로 "모름"이 되므로
+  // 효과 안에서 초기화할 필요가 없고, 옛 맵의 상태가 잠깐 비치는 일도 없다.
+  const [loaded, setLoaded] = useState<{ mapId: string; value: PublishState | null } | null>(null);
+  const state = loaded?.mapId === mapId ? loaded.value : undefined;
+  const setState = (value: PublishState | null) => setLoaded({ mapId, value });
+  const [handle, setHandle] = useState<string | null | undefined>(undefined);
   const [handleInput, setHandleInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // 패널을 열 때만 읽는다 — 툴바가 뜰 때마다 쿼리 두 개를 쏘지 않기 위해.
+  /**
+   * 공개 여부는 **패널을 열기 전에도** 정확해야 한다.
+   *
+   * 예전에는 패널을 열 때만 읽어서 쿼리를 아꼈는데, 읽기 전까지 상태가 비어 있어
+   * 버튼이 "비공개"로 보였다. 실제로는 공개 중인 맵에서도 그랬다. 개인정보 기능에서
+   * "공개인데 비공개로 보이는" 오류는 사용자를 안심시킨 채 노출시키므로 가장 나쁘다.
+   * 맵을 열 때 가벼운 쿼리 하나를 더 쏘는 값은 그에 비하면 싸다.
+   */
   useEffect(() => {
-    if (!isOpen || !session) return;
-    Promise.all([getPublishState(mapId), getMyHandle()])
-      .then(([s, h]) => {
-        setState(s);
-        setHandle(h);
-      })
+    if (!session) return;
+    let alive = true; // 맵을 빠르게 바꾸면 옛 응답이 나중에 도착할 수 있다
+    getPublishState(mapId)
+      .then((s) => alive && setLoaded({ mapId, value: s }))
+      .catch(() => alive && setLoaded({ mapId, value: null }));
+    return () => {
+      alive = false;
+    };
+  }, [session, mapId]);
+
+  // 닉네임은 패널을 열 때만 필요하다. 한 번 읽으면 다시 읽지 않는다.
+  useEffect(() => {
+    if (!isOpen || !session || handle !== undefined) return;
+    getMyHandle()
+      .then(setHandle)
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
-  }, [isOpen, session, mapId]);
+  }, [isOpen, session, handle]);
 
   if (!cloudEnabled || !session) return null;
 
@@ -90,9 +110,11 @@ export function PublishMenu() {
     <div className="relative">
       <button
         className={`px-2 py-1.5 rounded text-xs ${
-          live
-            ? 'bg-emerald-800/60 text-emerald-200 hover:bg-emerald-800'
-            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+          state === undefined
+            ? 'bg-slate-800 text-slate-500'
+            : live
+              ? 'bg-emerald-800/60 text-emerald-200 hover:bg-emerald-800'
+              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
         }`}
         onClick={() => {
           setError(null); // 지난번 실패 문구를 들고 다시 열지 않는다
@@ -101,7 +123,7 @@ export function PublishMenu() {
         aria-expanded={isOpen}
         title="이 맵을 공개할지 정합니다"
       >
-        {live ? '🌐 공개 중' : '🔒 비공개'}
+        {state === undefined ? '공개 설정…' : live ? '🌐 공개 중' : '🔒 비공개'}
       </button>
 
       {isOpen && (
@@ -110,7 +132,9 @@ export function PublishMenu() {
           <div className={PANEL}>
             <div className="text-sm font-semibold text-slate-100">공개 발행</div>
 
-            {handle === null ? (
+            {handle === undefined ? (
+              <p className="mt-2 text-[11px] text-slate-500">불러오는 중…</p>
+            ) : handle === null ? (
               <>
                 <p className="mt-1 mb-2 text-[11px] leading-relaxed text-slate-400">
                   공개하려면 먼저 닉네임이 필요합니다. 공개 주소에 쓰이고, 나중에 바꾸기
@@ -150,7 +174,7 @@ export function PublishMenu() {
                       : 'bg-emerald-700 text-white hover:bg-emerald-600'
                   }`}
                   onClick={() => toggle(!live)}
-                  disabled={busy || state === null}
+                  disabled={busy || state == null}
                 >
                   {busy ? '처리 중…' : live ? '공개 끄기' : '공개 켜기'}
                 </button>
