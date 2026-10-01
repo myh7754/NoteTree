@@ -30,8 +30,7 @@ import { ShortcutList } from '../ShortcutsHelp/ShortcutsHelp';
  * - 여기: 내 맵 전체에서 무엇을 공개했는지 한 화면에
  * 둘 다 DB에서 읽고, 한쪽에서 바꾸면 publishRevision 신호로 다른 쪽이 다시 읽는다.
  *
- * ponytail: 탭은 지금 채울 게 있는 것뿐이다. 단축키 탭은 지금은 목록만 보여 준다
- * (바꾸는 기능은 아직 없다). 연동·결제는 그 기능을
+ * ponytail: 탭은 지금 채울 게 있는 것뿐이다. 연동·결제는 그 기능을
  * 만드는 날 탭을 더한다 — 빈 탭을 미리 두면 몇 달간 "준비 중"으로 남는다.
  */
 type Tab = '화면' | '단축키' | '공개' | '계정';
@@ -104,7 +103,7 @@ export function SettingsDialog() {
           {tab === '화면' ? (
             <ScreenTab />
           ) : tab === '단축키' ? (
-            <ShortcutList className="space-y-5" />
+            <ShortcutList className="space-y-5" editable />
           ) : tab === '공개' ? (
             <PublishTab />
           ) : (

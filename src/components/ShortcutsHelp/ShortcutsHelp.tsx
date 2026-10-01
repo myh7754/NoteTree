@@ -1,5 +1,6 @@
 import { useMindMapStore } from '../../store/useMindMapStore';
-import { SHORTCUT_GROUPS } from '../../utils/shortcuts';
+import { useState } from 'react';
+import { checkCombo, comboOf, shortcutGroups, type ActionId } from '../../utils/shortcuts';
 
 /**
  * 단축키 도움말 모달.
@@ -49,31 +50,104 @@ export function ShortcutsHelp() {
   );
 }
 
-/** 단축키 목록 본문. 이 도움말 창과 설정창의 단축키 탭이 같이 쓴다. */
-export function ShortcutList({ className }: { className: string }) {
+const KEY_CLASS =
+  'inline-block px-1.5 py-0.5 rounded border bg-slate-800 text-[11px] font-mono text-slate-200 whitespace-nowrap';
+
+/**
+ * 단축키 목록 본문. 이 도움말 창과 설정창의 단축키 탭이 같이 쓴다.
+ *
+ * editable이면 바꿀 수 있는 키가 버튼이 된다: 누른 뒤 새 키를 누르면 바뀐다.
+ */
+export function ShortcutList({ className, editable = false }: { className: string; editable?: boolean }) {
+  const overrides = useMindMapStore((s) => s.shortcutOverrides);
+  const setShortcut = useMindMapStore((s) => s.setShortcut);
+  const resetShortcuts = useMindMapStore((s) => s.resetShortcuts);
+  const [capturing, setCapturing] = useState<ActionId | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const onKeyDown = (e: React.KeyboardEvent, action: ActionId) => {
+    // 이 버튼에서 누른 키가 전역 단축키로 새지 않게 한다 (Enter가 노드를 만들면 안 된다)
+    e.stopPropagation();
+    if (capturing !== action) return;
+    e.preventDefault();
+    if (e.key === 'Escape') return setCapturing(null);
+    const combo = comboOf(e.nativeEvent);
+    if (!combo) return; // Ctrl·Shift만 누른 상태 — 다음 키를 기다린다
+    const problem = checkCombo(action, combo, overrides);
+    setError(problem);
+    if (problem) return;
+    setShortcut(action, combo);
+    setCapturing(null);
+  };
+
   return (
-    <div className={className}>
-      {SHORTCUT_GROUPS.map((group) => (
-        <section key={group.title}>
-          <h3 className="text-[11px] uppercase tracking-wider text-slate-500 mb-2">
-            {group.title}
-          </h3>
-          {/* 키를 고정폭 열에 두어 설명의 왼쪽 끝을 맞춘다.
-              설명을 오른쪽 정렬하면 줄마다 시작점이 달라져 훑어읽기가 어렵다. */}
-          <dl className="space-y-1.5">
-            {group.items.map((item) => (
-              <div key={item.desc} className="flex items-baseline gap-3">
-                <dt className="shrink-0 w-[8.5rem]">
-                  <kbd className="inline-block px-1.5 py-0.5 rounded border border-slate-600 bg-slate-800 text-[11px] font-mono text-slate-200 whitespace-nowrap">
-                    {item.keys}
-                  </kbd>
-                </dt>
-                <dd className="text-xs text-slate-300 leading-relaxed">{item.desc}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      ))}
+    <div>
+      {editable && (
+        <div className="mb-4 space-y-2">
+          <p className="text-[11px] leading-relaxed text-slate-500">
+            보라색 테두리가 있는 키를 누른 다음, 새로 쓸 키를 누르면 바뀝니다. 로그인 중이면 계정에
+            저장되어 다른 기기에서도 같게 쓸 수 있습니다.
+          </p>
+          {error && (
+            <p role="alert" className="text-[11px] text-amber-400">
+              {error}
+            </p>
+          )}
+          <button
+            className="rounded bg-slate-800 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-700 disabled:opacity-40"
+            disabled={Object.keys(overrides).length === 0}
+            onClick={() => {
+              resetShortcuts();
+              setError(null);
+            }}
+          >
+            기본값으로 되돌리기
+          </button>
+        </div>
+      )}
+      <div className={className}>
+        {shortcutGroups(overrides).map((group) => (
+          <section key={group.title}>
+            <h3 className="text-[11px] uppercase tracking-wider text-slate-500 mb-2">
+              {group.title}
+            </h3>
+            {/* 키를 고정폭 열에 두어 설명의 왼쪽 끝을 맞춘다.
+                설명을 오른쪽 정렬하면 줄마다 시작점이 달라져 훑어읽기가 어렵다. */}
+            <dl className="space-y-1.5">
+              {group.items.map((item) => {
+                const action = item.action;
+                return (
+                  <div key={item.desc} className="flex items-baseline gap-3">
+                    <dt className="shrink-0 w-[8.5rem]">
+                      {editable && action ? (
+                        <button
+                          className={`${KEY_CLASS} ${
+                            capturing === action
+                              ? 'border-amber-400 text-amber-300'
+                              : 'border-indigo-500 hover:bg-slate-700'
+                          }`}
+                          aria-label={`${item.desc} 단축키 바꾸기`}
+                          onClick={() => {
+                            setCapturing(action);
+                            setError(null);
+                          }}
+                          onBlur={() => setCapturing(null)}
+                          onKeyDown={(e) => onKeyDown(e, action)}
+                        >
+                          {capturing === action ? '새 키를 누르세요' : item.keys}
+                        </button>
+                      ) : (
+                        <kbd className={`${KEY_CLASS} border-slate-600`}>{item.keys}</kbd>
+                      )}
+                    </dt>
+                    <dd className="text-xs text-slate-300 leading-relaxed">{item.desc}</dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }

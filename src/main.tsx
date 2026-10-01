@@ -11,11 +11,15 @@ import { parseRoute } from './utils/route';
 import { initSentry } from './lib/sentry';
 import { initAnalytics, identify } from './lib/analytics';
 import { Analytics } from '@vercel/analytics/react';
+import { onAccountShortcuts } from './db/shortcutSync';
+import { useMindMapStore } from './store/useMindMapStore';
 import './index.css';
 
 // 앱보다 먼저 켠다 — 초기화 중에 터진 에러도 잡으려면 가장 앞이어야 한다.
 initSentry();
 initAnalytics();
+// 로그인하면 계정에 저장해 둔 단축키 설정을 가져온다
+onAccountShortcuts((raw) => useMindMapStore.getState().setShortcutOverrides(raw));
 
 /**
  * 주소와 로그인 여부로 화면이 갈린다.

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { readMapTheme, type MapTheme } from '../utils/mapTheme';
+import { ACTIONS, sanitizeOverrides, type ActionId, type ShortcutOverrides } from '../utils/shortcuts';
+import { saveShortcutsToAccount } from '../db/shortcutSync';
 import { temporal } from 'zundo';
 import { applyNodeChanges, applyEdgeChanges, type NodeChange, type EdgeChange } from '@xyflow/react';
 import type { MindNode, MindMapData, MindMapNode, MindMapEdge, SaveStatus } from '../types';
@@ -191,6 +193,14 @@ function project(
   return { rfNodes: laidOut, rfEdges, positions: newPositions };
 }
 
+function readShortcutOverrides(): ShortcutOverrides {
+  try {
+    return sanitizeOverrides(JSON.parse(localStorage.getItem('shortcut-overrides') ?? 'null'));
+  } catch {
+    return {}; // 저장된 값이 깨져 있으면 기본값으로
+  }
+}
+
 // ─── 스토어 타입 ──────────────────────────────────────────────
 export type NavDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -225,6 +235,11 @@ interface MindMapStoreState {
   notePanelSide: 'left' | 'right';
   /** 맵 모양(노드·선을 그리는 방식). 이것도 이 기기의 취향이라 localStorage에 둔다. */
   mapTheme: MapTheme;
+  /**
+   * 사용자가 기본값과 다르게 바꾼 단축키만 담는다. 이 브라우저(localStorage)에 두고,
+   * 로그인 중이면 계정에도 올린다. 계정에 저장된 게 있으면 로그인할 때 그것이 이긴다.
+   */
+  shortcutOverrides: ShortcutOverrides;
   // 자동 저장 상태. 실패를 조용히 넘기지 않고 화면에 드러내기 위한 것.
   saveStatus: SaveStatus;
   saveError: string | null;
@@ -268,6 +283,10 @@ interface MindMapStoreActions {
   bumpPublishRevision: () => void;
   setNotePanelSide: (side: 'left' | 'right') => void;
   setMapTheme: (theme: MapTheme) => void;
+  setShortcut: (action: ActionId, combo: string) => void;
+  resetShortcuts: () => void;
+  /** 계정에서 읽어 온 설정을 적용한다 (다시 계정에 올리지는 않는다). */
+  setShortcutOverrides: (raw: unknown) => void;
   setSaveStatus: (status: SaveStatus, error?: string | null, savedAt?: number) => void;
   setExternalChange: (value: boolean) => void;
   openNoteDrawer: (nodeId: string) => void;
@@ -312,6 +331,7 @@ export const useMindMapStore = create<MindMapStore>()(
       publishRevision: 0,
       notePanelSide: localStorage.getItem('note-panel-side') === 'left' ? 'left' : 'right',
       mapTheme: readMapTheme(localStorage.getItem('map-theme')),
+      shortcutOverrides: readShortcutOverrides(),
       saveStatus: 'idle',
       saveError: null,
       lastSavedAt: null,
@@ -674,6 +694,27 @@ export const useMindMapStore = create<MindMapStore>()(
       setNotePanelSide: (side) => {
         localStorage.setItem('note-panel-side', side);
         set({ notePanelSide: side });
+      },
+
+      setShortcut: (action, combo) => {
+        const next = { ...get().shortcutOverrides };
+        if (combo === ACTIONS[action].keys) delete next[action]; // 기본값으로 돌아오면 지운다
+        else next[action] = combo;
+        localStorage.setItem('shortcut-overrides', JSON.stringify(next));
+        set({ shortcutOverrides: next });
+        saveShortcutsToAccount(next);
+      },
+
+      resetShortcuts: () => {
+        localStorage.removeItem('shortcut-overrides');
+        set({ shortcutOverrides: {} });
+        saveShortcutsToAccount({});
+      },
+
+      setShortcutOverrides: (raw) => {
+        const next = sanitizeOverrides(raw);
+        localStorage.setItem('shortcut-overrides', JSON.stringify(next));
+        set({ shortcutOverrides: next });
       },
 
       setMapTheme: (theme) => {

@@ -17,6 +17,7 @@ const LEVELS = [1, 2, 3, 4];
 export function ViewMenu() {
   const setAllCollapsed = useMindMapStore((s) => s.setAllCollapsed);
   const expandToLevel = useMindMapStore((s) => s.expandToLevel);
+  const overrides = useMindMapStore((s) => s.shortcutOverrides);
   const [isOpen, setIsOpen] = useState(false);
 
   // 고르면 닫는다 — 연속으로 단계를 바꿔볼 일은 드물고, 열린 채로 두면 맵을 가린다
@@ -41,12 +42,12 @@ export function ViewMenu() {
           <div className="absolute top-full left-0 mt-1 z-40 w-60 rounded-lg border border-slate-700 bg-slate-900 shadow-xl py-1">
             <MenuItem
               label="모두 펼치기"
-              keys={keysFor('모두 펼치기')}
+              keys={keysFor('expandAll', overrides)}
               onClick={() => run(() => setAllCollapsed(false))}
             />
             <MenuItem
               label="모두 접기"
-              keys={keysFor('모두 접기')}
+              keys={keysFor('collapseAll', overrides)}
               onClick={() => run(() => setAllCollapsed(true))}
             />
 
