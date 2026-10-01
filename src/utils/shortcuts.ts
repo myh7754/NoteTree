@@ -41,6 +41,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     items: [
       { keys: '← ↑ ↓ →', desc: '선택 옮기기' },
       { keys: 'Ctrl + F', desc: '노드 · 노트 검색' },
+      { keys: 'Ctrl + ,', desc: '설정' },
       { keys: '좌 + 우 드래그', desc: '화면 이동' },
     ],
   },

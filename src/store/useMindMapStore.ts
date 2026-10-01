@@ -212,6 +212,9 @@ interface MindMapStoreState {
   isSearchOpen: boolean;
   /** 단축키 도움말 모달. 기능이 있어도 못 찾으면 없는 것과 같아서 둔다. */
   isShortcutsOpen: boolean;
+  isSettingsOpen: boolean;
+  /** 노트 패널을 어느 쪽에 붙일지. 이 기기의 취향이라 맵 데이터가 아니라 localStorage에 둔다. */
+  notePanelSide: 'left' | 'right';
   // 자동 저장 상태. 실패를 조용히 넘기지 않고 화면에 드러내기 위한 것.
   saveStatus: SaveStatus;
   saveError: string | null;
@@ -250,6 +253,8 @@ interface MindMapStoreActions {
   focusNode: (id: string, center?: boolean) => void;
   setSearchOpen: (open: boolean) => void;
   setShortcutsOpen: (open: boolean) => void;
+  setSettingsOpen: (open: boolean) => void;
+  setNotePanelSide: (side: 'left' | 'right') => void;
   setSaveStatus: (status: SaveStatus, error?: string | null, savedAt?: number) => void;
   setExternalChange: (value: boolean) => void;
   openNoteDrawer: (nodeId: string) => void;
@@ -290,6 +295,8 @@ export const useMindMapStore = create<MindMapStore>()(
       fitRequest: 0,
       isSearchOpen: false,
       isShortcutsOpen: false,
+      isSettingsOpen: false,
+      notePanelSide: localStorage.getItem('note-panel-side') === 'left' ? 'left' : 'right',
       saveStatus: 'idle',
       saveError: null,
       lastSavedAt: null,
@@ -602,6 +609,8 @@ export const useMindMapStore = create<MindMapStore>()(
 
       setShortcutsOpen: (open) => set({ isShortcutsOpen: open }),
 
+      setSettingsOpen: (open) => set({ isSettingsOpen: open }),
+
       setSaveStatus: (status, error = null, savedAt) =>
         set((state) => ({
           saveStatus: status,
@@ -614,6 +623,15 @@ export const useMindMapStore = create<MindMapStore>()(
       openNoteDrawer: (nodeId) => set({ selectedNodeId: nodeId, isNoteDrawerOpen: true }),
 
       closeNoteDrawer: () => set({ isNoteDrawerOpen: false }),
+
+      /**
+       * 노트 패널 좌/우. 노트 창 안의 토글과 설정창 두 곳에서 바꾸므로
+       * 스토어가 유일한 출처여야 한다 (예전에는 NoteDrawer의 지역 상태였다).
+       */
+      setNotePanelSide: (side) => {
+        localStorage.setItem('note-panel-side', side);
+        set({ notePanelSide: side });
+      },
 
       setNoteDrawerWidth: (width) => {
         const clamped = Math.max(280, Math.min(width, window.innerWidth * 0.75));

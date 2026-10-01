@@ -35,6 +35,12 @@ export function handleShortcut(
       store.setSearchOpen(true);
       return;
     }
+    // Ctrl+, 는 거의 모든 앱에서 설정이다. 입력 중에도 열리게 둔다 (글자를 먹지 않는다)
+    if (e.key === ',') {
+      e.preventDefault();
+      store.setSettingsOpen(true);
+      return;
+    }
     if (inField) return; // 입력 중에는 자체 undo에 맡긴다 (아래 보기 단축키도 같이 막힌다)
     if (store.readOnly && (e.key === 'z' || e.key === 'y')) return;
     if (e.key === 'z') {
@@ -58,7 +64,12 @@ export function handleShortcut(
   }
 
   // Escape는 입력 중에도 처리해야 한다. 겹쳐 떠 있을 때는 위에 있는 것부터 닫는다:
-  // 도움말 모달 → 검색창 → 선택 해제.
+  // 설정창 → 도움말 모달 → 검색창 → 선택 해제.
+  if (e.key === 'Escape' && store.isSettingsOpen) {
+    e.preventDefault();
+    store.setSettingsOpen(false);
+    return;
+  }
   if (e.key === 'Escape' && store.isShortcutsOpen) {
     e.preventDefault();
     store.setShortcutsOpen(false);

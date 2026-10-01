@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy } from 'react';
 import { useMindMapStore } from '../../store/useMindMapStore';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { ResizeHandle } from './ResizeHandle';
@@ -10,18 +10,11 @@ const BlockNoteEditor = lazy(() =>
   import('./BlockNoteEditor').then((m) => ({ default: m.BlockNoteEditor }))
 );
 
-const SIDE_KEY = 'note-panel-side';
-
 export function NoteDrawer() {
-  // 화면 배치 취향이라 맵 데이터·스토어가 아니라 이 기기의 localStorage에만 둔다
-  const [side, setSide] = useState<'left' | 'right'>(() =>
-    localStorage.getItem(SIDE_KEY) === 'left' ? 'left' : 'right'
-  );
-  const toggleSide = () => {
-    const next = side === 'right' ? 'left' : 'right';
-    localStorage.setItem(SIDE_KEY, next);
-    setSide(next);
-  };
+  // 설정창에서도 바꾸므로 스토어가 유일한 출처다 (localStorage 저장은 스토어가 한다)
+  const side = useMindMapStore((s) => s.notePanelSide);
+  const setNotePanelSide = useMindMapStore((s) => s.setNotePanelSide);
+  const toggleSide = () => setNotePanelSide(side === 'right' ? 'left' : 'right');
 
   const {
     isNoteDrawerOpen,

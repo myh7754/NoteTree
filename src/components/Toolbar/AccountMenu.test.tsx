@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 
 const deleteAccount = vi.fn().mockResolvedValue(undefined);
 vi.mock('../../db/account', () => ({ deleteAccount: () => deleteAccount() }));
@@ -14,6 +14,7 @@ vi.mock('../../hooks/useAuth', () => ({
 }));
 
 import { AccountMenu } from './AccountMenu';
+import { useMindMapStore } from '../../store/useMindMapStore';
 
 const reload = vi.fn();
 
@@ -28,39 +29,21 @@ beforeEach(() => {
 
 const openMenu = () => fireEvent.click(screen.getByText(/me@example.com/));
 
-describe('AccountMenu 회원 탈퇴', () => {
-  it('한 번 눌러서는 지워지지 않는다 (확인 단계가 있다)', () => {
+describe('AccountMenu', () => {
+  // 회원 탈퇴 자체의 테스트는 설정창으로 옮겼다 (Settings/SettingsDialog.test.tsx).
+  // 여기서는 "계정 메뉴가 설정창으로 가는 길을 열어 준다"만 본다.
+  it('계정 설정을 누르면 설정창이 열린다', () => {
+    useMindMapStore.setState({ isSettingsOpen: false });
     render(<AccountMenu />);
     openMenu();
-    fireEvent.click(screen.getByText('회원 탈퇴'));
-    expect(deleteAccount).not.toHaveBeenCalled();
-    expect(screen.getByText(/되돌릴 수 없습니다/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/계정 설정/));
+    expect(useMindMapStore.getState().isSettingsOpen).toBe(true);
   });
 
-  it('확인을 누르면 탈퇴한다', async () => {
+  it('계정 메뉴에는 탈퇴 버튼을 직접 두지 않는다 — 같은 기능이 두 곳에 있으면 한쪽만 고쳐진다', () => {
     render(<AccountMenu />);
     openMenu();
-    fireEvent.click(screen.getByText('회원 탈퇴'));
-    fireEvent.click(screen.getByText('정말 탈퇴'));
-    await waitFor(() => expect(deleteAccount).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
-  });
-
-  it('연타해도 한 번만 호출한다', async () => {
-    render(<AccountMenu />);
-    openMenu();
-    fireEvent.click(screen.getByText('회원 탈퇴'));
-    const confirm = screen.getByText('정말 탈퇴');
-    fireEvent.click(confirm);
-    fireEvent.click(confirm);
-    await waitFor(() => expect(deleteAccount).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
-  });
-
-  it('로그인하지 않았으면 탈퇴 버튼이 없다', () => {
-    auth.session = null as unknown as typeof auth.session;
-    render(<AccountMenu />);
-    expect(screen.queryByText('회원 탈퇴')).not.toBeInTheDocument();
+    expect(screen.queryByText('정말 탈퇴')).not.toBeInTheDocument();
   });
 
   it('클라우드가 꺼져 있으면 아무것도 그리지 않는다', () => {

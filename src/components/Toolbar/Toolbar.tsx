@@ -13,6 +13,7 @@ export function Toolbar() {
   const applyLayout = useMindMapStore((s) => s.applyLayout);
   const setSearchOpen = useMindMapStore((s) => s.setSearchOpen);
   const setShortcutsOpen = useMindMapStore((s) => s.setShortcutsOpen);
+  const setSettingsOpen = useMindMapStore((s) => s.setSettingsOpen);
   const { undo, redo, canUndo, canRedo } = useUndoRedo();
 
   return (
@@ -105,6 +106,14 @@ export function Toolbar() {
         aria-label="단축키"
       >
         ⌨
+      </button>
+      <button
+        className="px-2 py-1.5 rounded text-xs bg-slate-700 text-slate-300 hover:bg-slate-600"
+        onClick={() => setSettingsOpen(true)}
+        title="설정 (Ctrl+,)"
+        aria-label="설정"
+      >
+        ⚙
       </button>
     </div>
   );
