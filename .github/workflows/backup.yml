@@ -1,0 +1,72 @@
+name: Supabase weekly backup
+
+# Supabase 무료 플랜은 자동 백업이 없다. 공식 문서도 "CLI로 직접 덤프해 외부에 보관하라"고
+# 권고한다. 주 1회 pg_dump를 떠서 **비공개** 저장소에 커밋한다.
+#
+# 왜 아티팩트가 아니라 별도 저장소인가:
+# 이 저장소(mind_map)는 PUBLIC이다. 공개 저장소의 Actions 아티팩트는 누구나 내려받을 수 있어,
+# 사용자 데이터를 거기 올리면 백업이 아니라 유출이다.
+#
+# 필요한 저장소 Secrets (둘 다 사용자가 등록):
+#   BACKUP_DB_URL     Supabase 대시보드 → Connect → Session pooler 연결 문자열(비밀번호 포함).
+#                     GitHub 러너는 IPv4만 되고 Supabase 직접 연결은 IPv6라 **pooler**여야 한다.
+#   BACKUP_REPO_TOKEN myh7754/mind_map-backup 에 Contents: Read/Write 권한만 가진 fine-grained PAT.
+#
+# ponytail: 보관 정리는 하지 않는다. 덤프가 작아(수 MB) 당분간 쌓여도 문제없다.
+#           저장소가 무거워지면 그때 오래된 파일을 지우는 단계를 넣는다.
+
+on:
+  schedule:
+    # 매주 일요일 18:00 UTC (= 월요일 KST 03:00)
+    - cron: '0 18 * * 0'
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Postgres 17 클라이언트 설치
+        # 서버가 PG17이라 러너 기본 pg_dump(구버전)로는 덤프가 거부된다.
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          pg_dump --version
+
+      - name: 백업 저장소 체크아웃
+        uses: actions/checkout@v4
+        with:
+          repository: myh7754/mind_map-backup
+          token: ${{ secrets.BACKUP_REPO_TOKEN }}
+          path: backup
+
+      - name: 덤프
+        env:
+          DB_URL: ${{ secrets.BACKUP_DB_URL }}
+        run: |
+          mkdir -p backup/dumps
+          STAMP=$(date -u +%Y-%m-%d)
+          OUT="backup/dumps/mindmap-$STAMP.sql"
+          pg_dump "$DB_URL" --no-owner --no-privileges --schema=public --schema=auth -f "$OUT"
+          gzip -f "$OUT"
+          ls -l "$OUT.gz"
+          # 빈 덤프를 백업이라 부르지 않는다. 10KB 미만이면 뭔가 잘못된 것이다.
+          SIZE=$(stat -c%s "$OUT.gz")
+          [ "$SIZE" -ge 10240 ] || { echo "덤프가 너무 작다($SIZE bytes) — 실패 처리"; exit 1; }
+          # 내용 확인: maps 테이블의 COPY 구문이 있어야 한다
+          zgrep -q "COPY public.maps" "$OUT.gz" || { echo "maps 데이터가 덤프에 없다 — 실패 처리"; exit 1; }
+
+      - name: 커밋
+        working-directory: backup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dumps
+          git diff --cached --quiet && { echo "변경 없음"; exit 0; }
+          git commit -m "backup: $(date -u +%Y-%m-%d)"
+          git push
