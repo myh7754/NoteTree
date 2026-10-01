@@ -9,11 +9,9 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useMindMapStore } from './store/useMindMapStore';
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
 import { loadPublicMapBySlug } from './db/publish';
+import { pickInitialDepth } from './utils/initialDepth';
 
 const noop = () => {};
-
-/** 처음 보여줄 깊이. 전부 펼치면 글자가 안 읽히고, 다 접으면 볼 게 없다. */
-const INITIAL_DEPTH = 2;
 
 /**
  * 공개 맵 하나를 읽기전용으로 보여준다 (/m/<슬러그>).
@@ -41,7 +39,8 @@ export function PublicMapViewer({ slug }: { slug: string }) {
         }
         // 저장된 좌표는 쓰지 않는다 — 방문자는 항상 정돈된 배치를 본다
         openMap(found, {});
-        expandToLevel(INITIAL_DEPTH);
+        // 깊이를 고정하지 않는다 — 맵마다 모양이 달라 같은 깊이가 전혀 다른 결과를 낸다.
+        expandToLevel(pickInitialDepth(found));
         setMap(found);
         setState('ready');
       })
