@@ -52,6 +52,11 @@ export function PrivacyPolicy() {
             <li>계정을 삭제하면 계정 정보와 작성한 마인드맵이 함께 즉시 삭제됩니다.</li>
             <li>삭제한 마인드맵은 다른 기기와의 동기화를 위해 표시만 해 두었다가 30일 뒤 완전히 지웁니다.</li>
             <li>접속 로그는 서비스 제공자(아래 4항)의 보관 정책에 따릅니다.</li>
+            <li>
+              장애 복구를 위해 주 1회 데이터베이스 백업본을 만들어 접근이 제한된 비공개 저장소에
+              보관합니다. 계정을 삭제해도 그 이전에 만들어진 백업본에는 한동안 데이터가 남아
+              있을 수 있으며, 백업본은 복구 목적 외에는 사용하지 않습니다.
+            </li>
           </ul>
         </Section>
 
@@ -79,7 +84,7 @@ export function PrivacyPolicy() {
                 </tr>
                 <tr>
                   <td className="border border-slate-700 px-2 py-1">GitHub</td>
-                  <td className="border border-slate-700 px-2 py-1">로그인 인증</td>
+                  <td className="border border-slate-700 px-2 py-1">로그인 인증, 백업 보관</td>
                   <td className="border border-slate-700 px-2 py-1">미국</td>
                 </tr>
               </tbody>

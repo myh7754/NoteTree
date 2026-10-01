@@ -14,6 +14,10 @@ name: Supabase weekly backup
 #
 # ponytail: 보관 정리는 하지 않는다. 덤프가 작아(수 MB) 당분간 쌓여도 문제없다.
 #           저장소가 무거워지면 그때 오래된 파일을 지우는 단계를 넣는다.
+#
+# 덤프는 **평문**이다 (2026-10-01 사용자 결정). 즉 백업 저장소 접근권 = 전원 데이터 접근권이고,
+# git 이력에 남아 과거 커밋의 데이터는 파일을 지워도 사라지지 않는다. 사용자가 늘어
+# 그 위험이 커지면 age 대칭키 암호화를 넣는다(암호는 Secret + 비밀번호 관리자 양쪽에 보관).
 
 on:
   schedule:
@@ -52,7 +56,10 @@ jobs:
           mkdir -p backup/dumps
           STAMP=$(date -u +%Y-%m-%d)
           OUT="backup/dumps/mindmap-$STAMP.sql"
-          pg_dump "$DB_URL" --no-owner --no-privileges --schema=public --schema=auth -f "$OUT"
+          # 전체 경로로 부른다 — PATH에는 러너 기본(구버전) pg_dump가 먼저 잡혀
+          # "server version mismatch"로 거부당한다.
+          /usr/lib/postgresql/17/bin/pg_dump "$DB_URL" \
+            --no-owner --no-privileges --schema=public --schema=auth -f "$OUT"
           gzip -f "$OUT"
           ls -l "$OUT.gz"
           # 빈 덤프를 백업이라 부르지 않는다. 10KB 미만이면 뭔가 잘못된 것이다.
