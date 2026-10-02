@@ -29,7 +29,7 @@ export function PublicProfile({ handle }: { handle: string }) {
     <div className="min-h-full overflow-y-auto bg-slate-950 px-6 py-10">
       <div className="mx-auto max-w-3xl pb-20">
         <a href="/" className="text-xs text-indigo-400 hover:text-indigo-300">
-          ← Mind Map
+          ← NoteTree
         </a>
         <h1 className="mt-4 text-2xl font-bold text-slate-50">{handle}</h1>
         <p className="mt-1 text-sm text-slate-500">공개한 공부 기록</p>

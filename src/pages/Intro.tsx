@@ -15,7 +15,7 @@ export function Intro() {
   return (
     <div className="min-h-full overflow-y-auto bg-slate-950">
       <header className="flex items-center gap-2 border-b border-slate-800 px-4 py-2">
-        <span className="text-sm font-semibold text-indigo-400">🗺 Mind Map</span>
+        <span className="text-sm font-semibold text-indigo-400">🌳 NoteTree</span>
         <div className="flex-1" />
         <AccountMenu />
       </header>
