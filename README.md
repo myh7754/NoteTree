@@ -1,4 +1,6 @@
-# mind_map
+# NoteTree
+
+**https://notetree-app.vercel.app**
 
 XMind/EdrawMind 대체를 목표로 하는 오픈소스 마인드맵 + 노드별 위키 노트 하이브리드 웹앱.
 
