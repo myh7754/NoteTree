@@ -123,3 +123,35 @@ describe('applyTreeLayout', () => {
     }
   });
 });
+
+describe('applyTreeLayout — 좌우 배치', () => {
+  const size = { width: 100, height: 40 };
+  const nodes = ['root', 'a', 'b', 'c', 'c1'].map((id) => makeNode(id, size));
+  const edges = [makeEdge('root', 'a'), makeEdge('root', 'b'), makeEdge('root', 'c'), makeEdge('c', 'c1')];
+  const at = (result: MindMapNode[], id: string) => result.find((n) => n.id === id)!.position;
+
+  it('루트 자식의 앞쪽 절반은 오른쪽, 나머지는 왼쪽에 놓인다 (홀수면 오른쪽이 하나 더)', () => {
+    const r = applyTreeLayout(nodes, edges, 'both');
+    expect(at(r, 'a').x).toBeGreaterThan(at(r, 'root').x);
+    expect(at(r, 'b').x).toBeGreaterThan(at(r, 'root').x);
+    expect(at(r, 'c').x).toBeLessThan(at(r, 'root').x);
+  });
+
+  it('왼쪽 가지의 자식은 더 왼쪽으로 뻗고, 서로 겹치지 않는다', () => {
+    const r = applyTreeLayout(nodes, edges, 'both');
+    expect(at(r, 'c1').x + size.width).toBeLessThan(at(r, 'c').x);
+    expect(at(r, 'c').x + size.width).toBeLessThan(at(r, 'root').x);
+  });
+
+  it('양쪽 묶음 모두 루트의 세로 중앙에 맞춰진다', () => {
+    const r = applyTreeLayout(nodes, edges, 'both');
+    const mid = (id: string) => at(r, id).y + size.height / 2;
+    expect((mid('a') + mid('b')) / 2).toBeCloseTo(mid('root'));
+    expect(mid('c')).toBeCloseTo(mid('root'));
+  });
+
+  it("방향을 주지 않으면 오른쪽으로만 뻗는다", () => {
+    const r = applyTreeLayout(nodes, edges);
+    for (const id of ['a', 'b', 'c']) expect(at(r, id).x).toBeGreaterThan(at(r, 'root').x);
+  });
+});

@@ -6,6 +6,32 @@ const DEFAULT_HEIGHT = 40;
 const RANK_SEP = 80; // 깊이(가로) 간격
 const NODE_SEP = 24; // 형제(세로) 간격
 
+/**
+ * 맵이 뻗는 방향.
+ * - right: 중심에서 오른쪽으로만 (처음부터 쓰던 모양)
+ * - both:  중심의 좌우로. 루트의 자식 중 앞쪽 절반은 오른쪽, 나머지는 왼쪽
+ */
+export type LayoutDirection = 'right' | 'both';
+
+export const readLayoutDirection = (v: string | null): LayoutDirection => (v === 'both' ? 'both' : 'right');
+
+// ponytail: 방향은 모듈 변수로 든다. 스토어가 배치를 부르는 곳이 열 군데가 넘는데 전부
+// 인자를 넘기도록 고치는 대신, 설정이 바뀔 때 여기 한 곳만 바꾼다. 이 기기의 취향이라
+// 맵마다 다를 일이 없다 — 맵마다 방향을 저장하게 되면 그때 인자로 바꾼다.
+let currentDirection: LayoutDirection = 'right';
+export const setLayoutDirection = (d: LayoutDirection) => {
+  currentDirection = d;
+};
+export const getLayoutDirection = () => currentDirection;
+
+/**
+ * 루트의 자식 중 몇 번째부터 왼쪽에 놓는가. 좌우 모양에서는 개수로 반을 가른다
+ * (홀수면 오른쪽이 하나 더). 어느 쪽인지를 데이터에 저장하지 않으므로, 루트의 자식을
+ * 더하거나 빼면 경계에 있던 가지가 반대쪽으로 넘어갈 수 있다.
+ */
+export const leftBranchStart = (rootChildCount: number, direction: LayoutDirection = currentDirection) =>
+  direction === 'both' ? Math.ceil(rootChildCount / 2) : rootChildCount;
+
 interface Size {
   w: number;
   h: number;
@@ -23,7 +49,7 @@ function measuredSize(node: MindMapNode): Size {
 }
 
 /**
- * 마인드맵 전용 트리 레이아웃 (LR, 왼→오른쪽).
+ * 마인드맵 전용 트리 레이아웃.
  *
  * dagre는 같은 rank의 형제 순서를 crossing 최소화 알고리즘으로 재배치하기 때문에
  * children 배열 순서가 화면 세로 순서와 어긋난다 → 드래그 순서 변경이 반영되지 않음.
@@ -36,11 +62,15 @@ function measuredSize(node: MindMapNode): Size {
  *   각 노드를 자기 밴드의 세로 중앙에 배치. 밴드 중앙이 곧 자식들의 중앙이므로
  *   "부모는 자식 가운데" 규칙이 자동으로 성립한다.
  * - 가로: 깊이별 최대 노드 폭을 누적해 열 x를 정한다 → 넓은 표 노드가 있으면
- *   그 다음 열 전체가 오른쪽으로 밀려 겹치지 않는다.
+ *   그 다음 열 전체가 밀려 겹치지 않는다. 열 폭은 좌우를 따로 잰다.
+ *
+ * 좌우 모양에서는 루트의 자식을 둘로 갈라 한쪽씩 같은 방식으로 놓는다. 왼쪽은
+ * 거울처럼 뒤집어, 노드의 **오른쪽 끝**을 열에 맞춘다(부모 쪽으로 붙는다).
  */
 export function applyTreeLayout(
   nodes: MindMapNode[],
-  edges: MindMapEdge[]
+  edges: MindMapEdge[],
+  direction: LayoutDirection = currentDirection
 ): MindMapNode[] {
   const visibleNodes = nodes.filter((n) => !n.hidden);
   const visibleEdges = edges.filter((e) => !e.hidden);
@@ -86,47 +116,73 @@ export function applyTreeLayout(
   };
   measure(root.id, 0);
 
-  // ── 열(x) 좌표: 깊이별 최대 폭 누적 ──
-  let maxDepth = 0;
-  for (const d of depth.values()) if (d > maxDepth) maxDepth = d;
-  const colWidth = new Array<number>(maxDepth + 1).fill(0);
-  for (const [id, d] of depth) {
-    const w = sizeOf(id).w;
-    if (w > colWidth[d]) colWidth[d] = w;
-  }
-  const colX = new Array<number>(maxDepth + 1).fill(0);
-  for (let d = 1; d <= maxDepth; d++) {
-    colX[d] = colX[d - 1] + colWidth[d - 1] + RANK_SEP;
-  }
-
-  // ── 2패스: 밴드를 나눠주며 배치 ──
+  const rootSize = sizeOf(root.id);
   const pos = new Map<string, { x: number; y: number }>();
 
-  const place = (id: string, top: number) => {
-    const myBand = band.get(id)!;
-    const { h } = sizeOf(id);
-    pos.set(id, { x: colX[depth.get(id)!], y: top + (myBand - h) / 2 });
+  /** 루트의 자식 묶음 하나(한쪽)를 놓고, 그 묶음의 전체 높이를 돌려준다. sign: 1=오른쪽, -1=왼쪽 */
+  const placeSide = (sideKids: string[], sign: 1 | -1): number => {
+    if (sideKids.length === 0) return 0;
 
-    const kids = childMap.get(id) ?? [];
-    if (kids.length === 0) return;
-
-    let childTotal = 0;
-    for (let i = 0; i < kids.length; i++) {
-      if (i > 0) childTotal += NODE_SEP;
-      childTotal += band.get(kids[i])!;
+    // ── 이쪽의 열 위치: 깊이별 최대 폭 누적 (루트 가장자리에서 떨어진 거리) ──
+    const colWidth: number[] = [];
+    const collect = (id: string) => {
+      const d = depth.get(id)!;
+      colWidth[d] = Math.max(colWidth[d] ?? 0, sizeOf(id).w);
+      for (const k of childMap.get(id) ?? []) collect(k);
+    };
+    sideKids.forEach(collect);
+    const offset: number[] = [];
+    for (let d = 1; d < colWidth.length; d++) {
+      offset[d] = d === 1 ? RANK_SEP : offset[d - 1] + colWidth[d - 1] + RANK_SEP;
     }
-    // 자식 묶음도 부모 밴드의 세로 중앙에 정렬 (부모가 자식보다 클 때 대비)
-    let cursor = top + (myBand - childTotal) / 2;
-    for (const k of kids) {
+
+    // ── 2패스: 밴드를 나눠주며 배치 ──
+    const place = (id: string, top: number) => {
+      const myBand = band.get(id)!;
+      const { w, h } = sizeOf(id);
+      const off = offset[depth.get(id)!];
+      pos.set(id, { x: sign > 0 ? rootSize.w + off : -off - w, y: top + (myBand - h) / 2 });
+
+      const kids = childMap.get(id) ?? [];
+      if (kids.length === 0) return;
+      let childTotal = 0;
+      for (let i = 0; i < kids.length; i++) {
+        if (i > 0) childTotal += NODE_SEP;
+        childTotal += band.get(kids[i])!;
+      }
+      // 자식 묶음도 부모 밴드의 세로 중앙에 정렬 (부모가 자식보다 클 때 대비)
+      let cursor = top + (myBand - childTotal) / 2;
+      for (const k of kids) {
+        place(k, cursor);
+        cursor += band.get(k)! + NODE_SEP;
+      }
+    };
+
+    let total = 0;
+    for (let i = 0; i < sideKids.length; i++) {
+      if (i > 0) total += NODE_SEP;
+      total += band.get(sideKids[i])!;
+    }
+    // 묶음의 세로 중앙을 루트의 세로 중앙에 맞춘다 (루트는 일단 y=0에 있다고 본다)
+    let cursor = rootSize.h / 2 - total / 2;
+    for (const k of sideKids) {
       place(k, cursor);
       cursor += band.get(k)! + NODE_SEP;
     }
+    return total;
   };
-  place(root.id, 0);
+
+  const rootKids = childMap.get(root.id) ?? [];
+  const split = leftBranchStart(rootKids.length, direction);
+  const tallest = Math.max(placeSide(rootKids.slice(0, split), 1), placeSide(rootKids.slice(split), -1));
+  pos.set(root.id, { x: 0, y: 0 });
+
+  // 맨 위가 y=0이 되도록 전체를 내린다 (자식 묶음이 루트보다 크면 위로 삐져나와 있다)
+  const shift = Math.max(0, (tallest - rootSize.h) / 2);
 
   return nodes.map((node) => {
     if (node.hidden) return node;
     const p = pos.get(node.id);
-    return p ? { ...node, position: p } : node;
+    return p ? { ...node, position: { x: p.x, y: p.y + shift } } : node;
   });
 }

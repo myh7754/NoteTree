@@ -5,11 +5,12 @@ import { useMindMapStore } from '../../store/useMindMapStore';
 import { hasNoteContent } from '../../utils/noteText';
 import { NoteIconButton } from './NoteIconButton';
 import { nodeLook, treeMeta } from '../../utils/mapTheme';
+import { leftBranchStart } from '../../utils/layout';
 
 export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps<MindMapNode>) {
   const [label, setLabel] = useState(data.label);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { updateNodeLabel, toggleCollapse, openNoteDrawer, deleteNode, mindMapData, editingNodeId, setEditingNodeId, readOnly, mapTheme } =
+  const { updateNodeLabel, toggleCollapse, openNoteDrawer, deleteNode, mindMapData, editingNodeId, setEditingNodeId, readOnly, mapTheme, layoutDirection } =
     useMindMapStore();
 
   // 편집 상태는 스토어가 단일 출처: 더블클릭/F2/Tab·Enter(생성 직후) 모두 여기로 모인다.
@@ -18,6 +19,9 @@ export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps
   const noted = hasNoteContent(data.note);
   const meta = treeMeta(mindMapData.rootId, mindMapData.children);
   const look = nodeLook(mapTheme, meta.depth.get(id) ?? 0, meta.branch.get(id) ?? -1, data.style?.color);
+  // 좌우 배치에서 왼쪽 가지에 있는가 — 자식이 왼쪽으로 뻗으므로 접기 버튼도 왼쪽에 둔다
+  const rootKidCount = (mindMapData.children[mindMapData.rootId] ?? []).length;
+  const onLeft = (meta.branch.get(id) ?? -1) >= leftBranchStart(rootKidCount, layoutDirection);
   // 밑줄형은 선이 밑줄로 이어지도록 연결점을 아래로 내린다
   const handleStyle = look.anchor === 'bottom' ? { top: 'calc(100% + 1px)' } : undefined;
 
@@ -107,7 +111,7 @@ export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps
       {hasChildren && (
         <button
           // before:-inset-2 = 보이는 크기는 그대로 두고 클릭 판정만 사방 8px 넓힌다.
-          className="absolute -right-5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-700 border border-slate-500 text-sm leading-none flex items-center justify-center text-slate-200 hover:bg-indigo-600 hover:border-indigo-400 z-10 before:absolute before:-inset-2 before:content-['']"
+          className={`absolute ${onLeft ? '-left-5' : '-right-5'} top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-700 border border-slate-500 text-sm leading-none flex items-center justify-center text-slate-200 hover:bg-indigo-600 hover:border-indigo-400 z-10 before:absolute before:-inset-2 before:content-['']`}
           onClick={(e) => { e.stopPropagation(); toggleCollapse(id); }}
           title={data.collapsed ? '펼치기' : '접기'}
         >

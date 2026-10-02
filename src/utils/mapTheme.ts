@@ -151,13 +151,17 @@ export function edgeLook(
   return { color: custom ?? branchColor(branch), width: depth === 0 ? (theme === 'underline' ? 3 : 2.5) : 1.5 };
 }
 
-/** 부모(x1,y1) → 자식(x2,y2) 경로. 어느 모양에서든 직각으로 꺾인 선이다. */
+/**
+ * 부모(x1,y1) → 자식(x2,y2) 경로. 어느 모양에서든 직각으로 꺾인 선이다.
+ * 자식이 부모의 왼쪽에 있으면(좌우 배치의 왼쪽 가지) 거울처럼 뒤집어 그린다.
+ */
 export function edgePath(x1: number, y1: number, x2: number, y2: number): string {
+  const dir = x2 >= x1 ? 1 : -1;
   // 꺾이는 자리를 자식 쪽 기준으로 잡는다 → 폭이 다른 부모들도 같은 세로줄에서 꺾인다
-  const mx = x2 - 40;
+  const mx = x2 - dir * 40;
   const dy = y2 - y1;
   if (Math.abs(dy) < 1) return `M ${x1} ${y1} H ${x2}`;
   const s = dy > 0 ? 1 : -1;
   const r = Math.min(6, Math.abs(dy) / 2);
-  return `M ${x1} ${y1} H ${mx - r} Q ${mx} ${y1} ${mx} ${y1 + s * r} V ${y2 - s * r} Q ${mx} ${y2} ${mx + r} ${y2} H ${x2}`;
+  return `M ${x1} ${y1} H ${mx - dir * r} Q ${mx} ${y1} ${mx} ${y1 + s * r} V ${y2 - s * r} Q ${mx} ${y2} ${mx + dir * r} ${y2} H ${x2}`;
 }

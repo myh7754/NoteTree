@@ -121,6 +121,8 @@ function ScreenTab() {
   const setSide = useMindMapStore((s) => s.setNotePanelSide);
   const theme = useMindMapStore((s) => s.mapTheme);
   const setTheme = useMindMapStore((s) => s.setMapTheme);
+  const direction = useMindMapStore((s) => s.layoutDirection);
+  const setDirection = useMindMapStore((s) => s.setLayoutDirection);
   const width = useMindMapStore((s) => s.noteDrawerWidth);
   const setWidth = useMindMapStore((s) => s.setNoteDrawerWidth);
 
@@ -141,6 +143,26 @@ function ScreenTab() {
             >
               <ThemePreview theme={t.id} />
               {t.label}
+            </button>
+          ))}
+        </div>
+      </Row>
+
+      <Row label="맵 방향" hint="가지가 뻗는 방향. 좌우로 하면 가지의 앞쪽 절반은 오른쪽, 나머지는 왼쪽에 놓입니다.">
+        <div className="grid grid-cols-3 gap-2">
+          {(['right', 'both'] as const).map((d) => (
+            <button
+              key={d}
+              className={`flex flex-col items-center gap-1 rounded-lg border bg-slate-950 px-2 pb-1.5 pt-2 text-xs ${
+                direction === d
+                  ? 'border-indigo-500 font-semibold text-white ring-1 ring-indigo-500'
+                  : 'border-slate-700 text-slate-200 hover:border-slate-500'
+              }`}
+              aria-pressed={direction === d}
+              onClick={() => setDirection(d)}
+            >
+              <DirectionPreview both={d === 'both'} />
+              {d === 'right' ? '오른쪽으로' : '좌우로'}
             </button>
           ))}
         </div>
@@ -532,6 +554,30 @@ function AccountTab() {
         {error && <div className="mt-2 break-words text-[11px] text-red-300">{error}</div>}
       </div>
     </div>
+  );
+}
+
+/** 맵 방향을 고르기 전에 차이를 보여 주는 작은 그림: 중심 주제 하나와 가지 넷. */
+function DirectionPreview({ both }: { both: boolean }) {
+  // [가지의 x, y]. 좌우 모양은 뒤쪽 둘이 왼쪽으로 간다.
+  const cx = both ? 60 : 22;
+  const kids: [left: boolean, y: number][] = both
+    ? [[false, 18], [false, 42], [true, 18], [true, 42]]
+    : [[false, 9], [false, 23], [false, 37], [false, 51]];
+  return (
+    <svg viewBox="0 0 120 60" className="w-full" aria-hidden="true">
+      {kids.map(([left, y]) => {
+        const dir = left ? -1 : 1;
+        const x = cx + dir * 14;
+        return (
+          <g key={`${left}-${y}`}>
+            <path d={`M ${x} 30 H ${x + dir * 9} V ${y} H ${x + dir * 18}`} stroke="#6366f1" strokeWidth={1.5} fill="none" />
+            <rect x={left ? x - 46 : x + 18} y={y - 5} width={28} height={10} rx={3} fill="#1e293b" stroke="#475569" />
+          </g>
+        );
+      })}
+      <rect x={cx - 14} y={22} width={28} height={16} rx={4} fill="#6366f1" />
+    </svg>
   );
 }
 

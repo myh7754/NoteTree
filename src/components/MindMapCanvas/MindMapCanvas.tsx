@@ -42,7 +42,34 @@ function findParentId(nodeId: string, children: Record<string, string[]>): strin
   return null;
 }
 
-type Drop = { parentId: string; index: number };
+// left: 놓이는 자리가 루트의 왼쪽인가 (좌우 배치). 오른쪽으로만 뻗는 배치에서는 항상 false.
+type Drop = { parentId: string; index: number; left: boolean };
+
+const widthOf = (n: Node) => n.measured?.width ?? n.width ?? 160;
+
+/**
+ * 놓일 자리 주변의 형제들과, 그 안에서의 순서.
+ * 루트의 자식은 좌우로 갈라져 있으므로 **같은 쪽 형제만** 본다 — 전부를 한 줄로 보면
+ * 오른쪽에 놓는데 왼쪽 가지들이 밀려난다.
+ */
+function slotSiblings(
+  d: Drop,
+  children: Record<string, string[]>,
+  rootId: string,
+  byId: Map<string, Node>,
+  moving: Set<string>
+): { sibs: Node[]; index: number } {
+  const all = (children[d.parentId] ?? [])
+    .filter((id) => !moving.has(id))
+    .map((id) => byId.get(id))
+    .filter(Boolean) as Node[];
+  if (d.parentId !== rootId) return { sibs: all, index: d.index };
+  const root = byId.get(rootId);
+  const rootCx = root ? root.position.x + widthOf(root) / 2 : 0;
+  const isLeft = (n: Node) => n.position.x + widthOf(n) / 2 < rootCx;
+  const right = all.filter((n) => !isLeft(n));
+  return d.left ? { sibs: all.filter(isLeft), index: d.index - right.length } : { sibs: right, index: d.index };
+}
 
 function Flow() {
   const {
@@ -58,6 +85,7 @@ function Flow() {
     focusRequest,
     fitRequest,
     readOnly,
+    layoutDirection,
   } = useMindMapStore();
   const { getNodes, setCenter, getViewport, fitView } = useReactFlow();
   // ReactFlow 내부 스토어. 캔버스(pane) 실제 픽셀 크기를 읽는 데 쓴다.
@@ -157,24 +185,39 @@ function Flow() {
       };
 
       const nr = rects.get(nearest)!;
-      // 자식/형제 판정은 "왼쪽 정렬 x" 기준 (폭이 달라도 같은 열은 x가 같아 안정적).
-      // 드래그 노드 왼쪽이 대상 가로 중앙을 넘으면 → 자식, 아니면 → 형제.
-      const isChildDrop = nearest === rootId || a.x > nr.x + nr.w * 0.5;
+      // 좌우 배치에서 루트 왼쪽에 있는 노드는 자식이 왼쪽으로 뻗는다
+      const rootRect = rects.get(rootId);
+      const rootCx = rootRect ? rootRect.x + rootRect.w / 2 : 0;
+      const leftOf = (r: { x: number; w: number }) => layoutDirection === 'both' && r.x + r.w / 2 < rootCx;
+      const nLeft = nearest !== rootId && leftOf(nr);
 
-      if (isChildDrop) {
-        const sibs = (children[nearest] ?? []).filter((id) => !subtreeRef.current.has(id));
-        return { parentId: nearest, index: indexByY(sibs) };
-      }
+      // parentId 밑에, 드롭 y위치에 맞는 자리로. 루트 밑이면 같은 쪽 형제 안에서 순서를 정한다
+      // (루트의 자식은 앞쪽이 오른쪽, 뒤쪽이 왼쪽이다).
+      const dropInto = (parentId: string, left: boolean): Drop => {
+        const sibs = (children[parentId] ?? []).filter((id) => !subtreeRef.current.has(id));
+        if (parentId !== rootId || layoutDirection !== 'both') return { parentId, index: indexByY(sibs), left };
+        const isL = (id: string) => {
+          const r = rects.get(id);
+          return !!r && leftOf(r);
+        };
+        const rights = sibs.filter((id) => !isL(id));
+        const lefts = sibs.filter(isL);
+        return { parentId, index: left ? rights.length + indexByY(lefts) : indexByY(rights), left };
+      };
+
+      // 자식/형제 판정은 대상의 가로 중앙 기준: 드래그 노드가 대상의 "자식 쪽"으로
+      // 중앙을 넘어가 있으면 → 자식, 아니면 → 형제.
+      const isChildDrop =
+        nearest === rootId || (nLeft ? a.x + a.w < nr.x + nr.w * 0.5 : a.x > nr.x + nr.w * 0.5);
+
       const np = findParentId(nearest, children);
-      if (np === null || subtreeRef.current.has(np)) {
-        // 대상이 루트(부모 없음)이거나 순환이면 대상의 자식으로 처리
-        const sibs = (children[nearest] ?? []).filter((id) => !subtreeRef.current.has(id));
-        return { parentId: nearest, index: indexByY(sibs) };
+      if (isChildDrop || np === null || subtreeRef.current.has(np)) {
+        // (대상이 루트이거나 순환이면 대상의 자식으로 처리)
+        return dropInto(nearest, nearest === rootId ? leftOf(a) : nLeft);
       }
-      const sibs = (children[np] ?? []).filter((id) => !subtreeRef.current.has(id));
-      return { parentId: np, index: indexByY(sibs) };
+      return dropInto(np, nLeft);
     },
-    [mindMapData]
+    [mindMapData, layoutDirection]
   );
 
   /**
@@ -278,8 +321,8 @@ function Flow() {
     const gh = dragged?.measured?.height ?? dragged?.height ?? 40;
     const shift = gh + SLOT_GAP;
     const moving = new Set(movingIds);
-    const sibIds = (mindMapData.children[drop.parentId] ?? []).filter((id) => !moving.has(id));
-    const shiftSet = new Set(sibIds.slice(drop.index));
+    const { sibs, index } = slotSiblings(drop, mindMapData.children, mindMapData.rootId, byId, moving);
+    const shiftSet = new Set(sibs.slice(index).map((n) => n.id));
     return rfNodes.map((n) => {
       if (n.id === draggingId || moving.has(n.id)) return { ...n, className: 'rf-dragging' };
       if (shiftSet.has(n.id)) {
@@ -287,7 +330,7 @@ function Flow() {
       }
       return n;
     });
-  }, [rfNodes, draggingId, movingIds, drop, mindMapData.children]);
+  }, [rfNodes, draggingId, movingIds, drop, mindMapData.children, mindMapData.rootId]);
 
   // 드래그 중: 끄는 노드의 기존 들어오는 간선만 숨긴다 (미리보기는 오버레이로 따로 그림)
   const edges = useMemo<MindMapEdge[]>(() => {
@@ -307,33 +350,37 @@ function Flow() {
     const pw = parent.measured?.width ?? parent.width ?? 160;
     const ph = parent.measured?.height ?? parent.height ?? 40;
 
-    const sibs = (mindMapData.children[drop.parentId] ?? [])
-      .filter((id) => id !== draggingId)
-      .map((id) => byId.get(id))
-      .filter(Boolean) as Node[];
+    const { sibs, index } = slotSiblings(
+      drop,
+      mindMapData.children,
+      mindMapData.rootId,
+      byId,
+      new Set([draggingId, ...movingIds])
+    );
 
+    // 왼쪽 가지는 노드의 오른쪽 끝을 열에 맞춘다 (부모 쪽으로 붙는다)
     let slotX: number;
     let slotY: number;
     if (sibs.length === 0) {
-      slotX = parent.position.x + pw + 80;
+      slotX = drop.left ? parent.position.x - 80 - gw : parent.position.x + pw + 80;
       slotY = parent.position.y;
     } else {
-      slotX = sibs[0].position.x; // 형제들은 같은 열(x) 공유
-      if (drop.index >= sibs.length) {
+      slotX = drop.left ? sibs[0].position.x + widthOf(sibs[0]) - gw : sibs[0].position.x;
+      if (index >= sibs.length) {
         const last = sibs[sibs.length - 1];
         slotY = last.position.y + (last.measured?.height ?? 40) + SLOT_GAP;
       } else {
-        slotY = sibs[drop.index].position.y;
+        slotY = sibs[index].position.y;
       }
     }
 
-    const sx = parent.position.x + pw;
+    const sx = drop.left ? parent.position.x : parent.position.x + pw;
     const sy = parent.position.y + ph / 2;
-    const tx = slotX;
+    const tx = drop.left ? slotX + gw : slotX;
     const ty = slotY + gh / 2;
     const path = edgePath(sx, sy, tx, ty);
     return { slotX, slotY, gw, gh, path };
-  }, [rfNodes, draggingId, drop, mindMapData.children]);
+  }, [rfNodes, draggingId, movingIds, drop, mindMapData.children, mindMapData.rootId]);
 
   return (
     <ReactFlow

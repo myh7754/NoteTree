@@ -49,6 +49,12 @@ describe('mapTheme', () => {
     expect(edgePath(0, 10, 100, 10)).toBe('M 0 10 H 100');
   });
 
+  it('왼쪽으로 가는 선은 거울처럼 뒤집힌다 — 꺾이는 자리가 자식 쪽에 있다', () => {
+    // 오른쪽: 자식(x=100) 40 앞인 60에서 꺾인다. 왼쪽: 자식(x=-100) 40 앞인 -60에서 꺾인다.
+    expect(edgePath(0, 0, 100, 50)).toContain('Q 60 0 60 6');
+    expect(edgePath(0, 0, -100, 50)).toContain('Q -60 0 -60 6');
+  });
+
   it('저장된 값이 이상하면 기본 테마로 돌아간다', () => {
     expect(readMapTheme('plain')).toBe('plain');
     expect(readMapTheme('nope')).toBe('classic');
