@@ -3,7 +3,7 @@ import type { MindMapData } from '../types';
 import { useMindMapStore } from '../store/useMindMapStore';
 import { saveMindMap } from '../db/mindmapDB';
 import { createTabSync, type TabSync } from '../db/tabSync';
-import { pushMap } from '../db/cloudSync';
+import { pushMap, quotaMessage } from '../db/cloudSync';
 import { maybeAutoPublish } from '../db/publish';
 
 const AUTOSAVE_DELAY = 500;
@@ -55,7 +55,14 @@ export function useAutosave(
             .then((published) => {
               if (published) useMindMapStore.getState().bumpPublishRevision();
             })
-            .catch(() => {});
+            .catch((err: unknown) => {
+              // 용량 상한만은 알린다 — 조용히 넘기면 "올라간 줄 알았는데 다른 기기에 없다"가 된다.
+              // 메시지는 pushMap이 이미 사용자용 문장으로 바꿔 던진다.
+              const message = err instanceof Error ? err.message : '';
+              if (message.includes('클라우드에 올리지 못했습니다')) {
+                useMindMapStore.getState().setSaveStatus('error', message);
+              }
+            });
         })
         .catch((err: unknown) => {
           const message = err instanceof Error ? err.message : String(err);

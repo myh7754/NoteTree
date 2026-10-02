@@ -128,3 +128,39 @@ select cron.schedule(
   '0 18 * * *',
   $$delete from public.maps where deleted_at is not null and deleted_at < now() - interval '30 days'$$
 );
+
+-- ─────────────────────────────────────────────────────────────
+-- 용량 상한 (2026-10-03). 노드 개수 제한은 두지 않는다 — 이 앱을 만든 이유가 그것이다.
+-- 막는 것은 하나: 누군가 무료 DB(500MB)를 혼자 채워 모든 사용자의 저장이 멈추는 일.
+--   맵 하나      10MB  (217노드짜리 맵이 약 0.36MB)
+--   한 사람 전체  50MB  (지운 지 30일이 안 된 맵 포함 — 만들고 지우기를 반복해 우회하지 못하게)
+-- 숫자를 바꾸면 src/db/cloudSync.ts의 quotaMessage 문장도 같이 고친다.
+-- 적용 절차는 migrations/2026-10-03-storage-quota.sql 참고.
+-- ─────────────────────────────────────────────────────────────
+alter table public.maps add column if not exists size_bytes bigint not null default 0;
+
+create or replace function public.maps_enforce_quota()
+returns trigger
+language plpgsql
+as $$
+declare
+  used bigint;
+begin
+  new.size_bytes := octet_length(new.data::text) + octet_length(new.positions::text);
+  if new.size_bytes > 10485760 then
+    raise exception 'MAP_TOO_LARGE';
+  end if;
+  select coalesce(sum(size_bytes), 0) into used
+    from public.maps
+    where owner_id = new.owner_id and id <> new.id;
+  if used + new.size_bytes > 52428800 then
+    raise exception 'QUOTA_EXCEEDED';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists maps_quota on public.maps;
+create trigger maps_quota
+  before insert or update of data, positions on public.maps
+  for each row execute function public.maps_enforce_quota();
