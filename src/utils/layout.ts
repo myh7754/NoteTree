@@ -13,23 +13,16 @@ const NODE_SEP = 24; // 형제(세로) 간격
  */
 export type LayoutDirection = 'right' | 'both';
 
-export const readLayoutDirection = (v: string | null): LayoutDirection => (v === 'both' ? 'both' : 'right');
-
-// ponytail: 방향은 모듈 변수로 든다. 스토어가 배치를 부르는 곳이 열 군데가 넘는데 전부
-// 인자를 넘기도록 고치는 대신, 설정이 바뀔 때 여기 한 곳만 바꾼다. 이 기기의 취향이라
-// 맵마다 다를 일이 없다 — 맵마다 방향을 저장하게 되면 그때 인자로 바꾼다.
-let currentDirection: LayoutDirection = 'right';
-export const setLayoutDirection = (d: LayoutDirection) => {
-  currentDirection = d;
-};
-export const getLayoutDirection = () => currentDirection;
+/** 맵 데이터에 적힌 방향. 적혀 있지 않거나 모르는 값이면 오른쪽으로만. */
+export const directionOf = (data: { direction?: unknown }): LayoutDirection =>
+  data.direction === 'both' ? 'both' : 'right';
 
 /**
  * 루트의 자식 중 몇 번째부터 왼쪽에 놓는가. 좌우 모양에서는 개수로 반을 가른다
- * (홀수면 오른쪽이 하나 더). 어느 쪽인지를 데이터에 저장하지 않으므로, 루트의 자식을
+ * (홀수면 오른쪽이 하나 더). 어느 쪽인지를 가지마다 저장하지는 않으므로, 루트의 자식을
  * 더하거나 빼면 경계에 있던 가지가 반대쪽으로 넘어갈 수 있다.
  */
-export const leftBranchStart = (rootChildCount: number, direction: LayoutDirection = currentDirection) =>
+export const leftBranchStart = (rootChildCount: number, direction: LayoutDirection) =>
   direction === 'both' ? Math.ceil(rootChildCount / 2) : rootChildCount;
 
 interface Size {
@@ -70,7 +63,7 @@ function measuredSize(node: MindMapNode): Size {
 export function applyTreeLayout(
   nodes: MindMapNode[],
   edges: MindMapEdge[],
-  direction: LayoutDirection = currentDirection
+  direction: LayoutDirection = 'right'
 ): MindMapNode[] {
   const visibleNodes = nodes.filter((n) => !n.hidden);
   const visibleEdges = edges.filter((e) => !e.hidden);

@@ -7,10 +7,8 @@ import { applyNodeChanges, applyEdgeChanges, type NodeChange, type EdgeChange } 
 import type { MindNode, MindMapData, MindMapNode, MindMapEdge, SaveStatus } from '../types';
 import {
   applyTreeLayout,
-  getLayoutDirection,
+  directionOf,
   leftBranchStart,
-  readLayoutDirection,
-  setLayoutDirection as applyLayoutDirection,
   type LayoutDirection,
 } from '../utils/layout';
 import { nanoid } from 'nanoid';
@@ -195,7 +193,7 @@ function project(
 ): { rfNodes: MindMapNode[]; rfEdges: MindMapEdge[]; positions: Positions } {
   const { rfNodes, rfEdges } = buildReactFlow(mindMapData, positions, selectedNodeId, prevNodes);
   if (!relayout) return { rfNodes, rfEdges, positions };
-  const laidOut = applyTreeLayout(rfNodes, rfEdges);
+  const laidOut = applyTreeLayout(rfNodes, rfEdges, directionOf(mindMapData));
   const newPositions = Object.fromEntries(laidOut.map((n) => [n.id, n.position]));
   return { rfNodes: laidOut, rfEdges, positions: newPositions };
 }
@@ -242,8 +240,6 @@ interface MindMapStoreState {
   notePanelSide: 'left' | 'right';
   /** 맵 모양(노드·선을 그리는 방식). 이것도 이 기기의 취향이라 localStorage에 둔다. */
   mapTheme: MapTheme;
-  /** 맵이 뻗는 방향(오른쪽만 / 좌우). 이것도 이 기기의 취향이다. 실제 값은 utils/layout이 든다. */
-  layoutDirection: LayoutDirection;
   /**
    * 사용자가 기본값과 다르게 바꾼 단축키만 담는다. 이 브라우저(localStorage)에 두고,
    * 로그인 중이면 계정에도 올린다. 계정에 저장된 게 있으면 로그인할 때 그것이 이긴다.
@@ -292,6 +288,7 @@ interface MindMapStoreActions {
   bumpPublishRevision: () => void;
   setNotePanelSide: (side: 'left' | 'right') => void;
   setMapTheme: (theme: MapTheme) => void;
+  /** 지금 열려 있는 맵의 방향을 바꾼다. 맵 데이터에 저장된다 (mindMapData.direction). */
   setLayoutDirection: (direction: LayoutDirection) => void;
   setShortcut: (action: ActionId, combo: string) => void;
   resetShortcuts: () => void;
@@ -318,9 +315,6 @@ interface MindMapStoreActions {
 
 type MindMapStore = MindMapStoreState & MindMapStoreActions;
 
-// 첫 배치보다 먼저 저장된 방향을 적용한다
-applyLayoutDirection(readLayoutDirection(localStorage.getItem('layout-direction')));
-
 const { rfNodes: _initNodes, rfEdges: initialRfEdges } = buildReactFlow(initialMindMapData, {});
 const initialRfNodes = applyTreeLayout(_initNodes, initialRfEdges);
 
@@ -344,7 +338,6 @@ export const useMindMapStore = create<MindMapStore>()(
       publishRevision: 0,
       notePanelSide: localStorage.getItem('note-panel-side') === 'left' ? 'left' : 'right',
       mapTheme: readMapTheme(localStorage.getItem('map-theme')),
-      layoutDirection: getLayoutDirection(),
       shortcutOverrides: readShortcutOverrides(),
       saveStatus: 'idle',
       saveError: null,
@@ -636,7 +629,7 @@ export const useMindMapStore = create<MindMapStore>()(
 
         // 좌우 배치의 왼쪽 가지에서는 화면 방향이 뒤집힌다: ← 가 자식 쪽, → 가 부모 쪽.
         const rootKids = children[rootId] ?? [];
-        const split = leftBranchStart(rootKids.length);
+        const split = leftBranchStart(rootKids.length, directionOf(mindMapData));
         const { branch } = treeMeta(rootId, children);
         const isLeft = (id: string) => id !== rootId && (branch.get(id) ?? 0) >= split;
 
@@ -750,11 +743,14 @@ export const useMindMapStore = create<MindMapStore>()(
       },
 
       setLayoutDirection: (direction) => {
-        localStorage.setItem('layout-direction', direction);
-        applyLayoutDirection(direction);
-        set({ layoutDirection: direction });
-        get().applyLayout();
-        set((s) => ({ fitRequest: s.fitRequest + 1 })); // 맵 폭이 크게 달라지므로 화면을 다시 맞춘다
+        const { mindMapData, positions, selectedNodeId, rfNodes, fitRequest } = get();
+        if (directionOf(mindMapData) === direction) return;
+        const newData = { ...mindMapData, direction };
+        set({
+          mindMapData: newData,
+          ...project(newData, positions, selectedNodeId, rfNodes, true),
+          fitRequest: fitRequest + 1, // 맵 폭이 크게 달라지므로 화면을 다시 맞춘다
+        });
       },
 
       setMapTheme: (theme) => {
@@ -791,7 +787,7 @@ export const useMindMapStore = create<MindMapStore>()(
         }
 
         // 배치 결과는 데이터에서 파생되므로 히스토리에는 남지 않는다 (equality가 mindMapData만 비교)
-        const laidOut = applyTreeLayout(nextNodes, get().rfEdges);
+        const laidOut = applyTreeLayout(nextNodes, get().rfEdges, directionOf(get().mindMapData));
         set({
           rfNodes: laidOut,
           positions: Object.fromEntries(laidOut.map((n) => [n.id, n.position])),
@@ -805,8 +801,8 @@ export const useMindMapStore = create<MindMapStore>()(
       },
 
       applyLayout: () => {
-        const { rfNodes, rfEdges } = get();
-        const laidOut = applyTreeLayout(rfNodes, rfEdges);
+        const { rfNodes, rfEdges, mindMapData } = get();
+        const laidOut = applyTreeLayout(rfNodes, rfEdges, directionOf(mindMapData));
         set({
           rfNodes: laidOut,
           positions: Object.fromEntries(laidOut.map((n) => [n.id, n.position])),

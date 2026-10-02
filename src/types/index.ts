@@ -33,6 +33,12 @@ export interface MindMapData {
   rootId: string;
   children: Record<string, string[]>;  // parentId → childIds
   nodes: Record<string, MindNode>;
+  /**
+   * 가지가 뻗는 방향. 없으면 'right'(오른쪽으로만).
+   * 맵마다 다르게 고를 수 있어야 해서 기기 설정이 아니라 맵 데이터에 둔다 —
+   * 그래서 다른 기기와 공개 페이지에서도 같은 모양으로 보인다.
+   */
+  direction?: 'right' | 'both';
 }
 
 export interface PersistedState {

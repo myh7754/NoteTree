@@ -15,6 +15,7 @@ import { handleUrl, mapUrl } from '../../utils/publish';
 import { track } from '../../lib/analytics';
 import { HandleForm } from '../Toolbar/HandleForm';
 import { MAP_THEMES, type MapTheme } from '../../utils/mapTheme';
+import { directionOf } from '../../utils/layout';
 import { ShortcutList } from '../ShortcutsHelp/ShortcutsHelp';
 import { BYTES_PER_NODE, QUOTA_BYTES, getStorageUsed } from '../../db/storage';
 
@@ -121,7 +122,9 @@ function ScreenTab() {
   const setSide = useMindMapStore((s) => s.setNotePanelSide);
   const theme = useMindMapStore((s) => s.mapTheme);
   const setTheme = useMindMapStore((s) => s.setMapTheme);
-  const direction = useMindMapStore((s) => s.layoutDirection);
+  const direction = useMindMapStore((s) => directionOf(s.mindMapData));
+  const mapTitle = useMindMapStore((s) => s.mindMapData.title);
+  const readOnly = useMindMapStore((s) => s.readOnly);
   const setDirection = useMindMapStore((s) => s.setLayoutDirection);
   const width = useMindMapStore((s) => s.noteDrawerWidth);
   const setWidth = useMindMapStore((s) => s.setNoteDrawerWidth);
@@ -148,7 +151,11 @@ function ScreenTab() {
         </div>
       </Row>
 
-      <Row label="맵 방향" hint="가지가 뻗는 방향. 좌우로 하면 가지의 앞쪽 절반은 오른쪽, 나머지는 왼쪽에 놓입니다.">
+      {/* 방향은 맵마다 따로다 (맵 데이터에 저장). 남의 공개 맵을 보는 중에는 바꿀 수 없다. */}
+      <Row
+        label={`맵 방향 — 지금 열린 맵 "${mapTitle}"에만 적용`}
+        hint="가지가 뻗는 방향. 좌우로 하면 가지의 앞쪽 절반은 오른쪽, 나머지는 왼쪽에 놓입니다. 맵마다 따로 저장되고, 공개 페이지에서도 같은 방향으로 보입니다."
+      >
         <div className="grid grid-cols-3 gap-2">
           {(['right', 'both'] as const).map((d) => (
             <button
@@ -159,6 +166,7 @@ function ScreenTab() {
                   : 'border-slate-700 text-slate-200 hover:border-slate-500'
               }`}
               aria-pressed={direction === d}
+              disabled={readOnly}
               onClick={() => setDirection(d)}
             >
               <DirectionPreview both={d === 'both'} />

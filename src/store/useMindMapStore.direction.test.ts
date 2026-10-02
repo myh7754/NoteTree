@@ -50,6 +50,19 @@ describe('좌우 배치의 방향키', () => {
     expect(press('c', 'down')).toBe('d');
   });
 
+  it('방향은 맵 데이터에 저장되고, 다른 맵을 열면 그 맵의 방향을 따른다', () => {
+    expect(store().mindMapData.direction).toBe('both');
+    const x = (id: string) => store().rfNodes.find((n) => n.id === id)!.position.x;
+    expect(x('c')).toBeLessThan(x('root')); // 좌우: c는 왼쪽
+
+    // 방향이 적혀 있지 않은 다른 맵 → 오른쪽으로만
+    store().openMap(
+      { id: 'other', title: 'o', rootId: 'r', children: { r: ['p', 'q'], p: [], q: [] }, nodes: Object.fromEntries(['r', 'p', 'q'].map((id) => [id, node(id)])) },
+      {}
+    );
+    expect(x('q')).toBeGreaterThan(x('r'));
+  });
+
   it('오른쪽으로만 뻗는 배치에서는 루트의 ← 가 아무 데도 가지 않는다', () => {
     store().setLayoutDirection('right');
     expect(press('root', 'left')).toBe('root');

@@ -21,6 +21,7 @@ import { TableNode } from './TableNode';
 import { BezierEdge } from './BezierEdge';
 import { ChordPanController } from './ChordPanController';
 import { edgePath } from '../../utils/mapTheme';
+import { directionOf } from '../../utils/layout';
 
 const nodeTypes: NodeTypes = {
   textNode: TextNode,
@@ -85,8 +86,8 @@ function Flow() {
     focusRequest,
     fitRequest,
     readOnly,
-    layoutDirection,
   } = useMindMapStore();
+  const layoutDirection = directionOf(mindMapData);
   const { getNodes, setCenter, getViewport, fitView } = useReactFlow();
   // ReactFlow 내부 스토어. 캔버스(pane) 실제 픽셀 크기를 읽는 데 쓴다.
   const rfStore = useStoreApi();
