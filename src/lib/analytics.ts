@@ -18,7 +18,9 @@ export type EventName =
   | 'note_saved'
   | 'search_used'
   | 'map_published'
-  | 'export_used';
+  | 'export_used'
+  | 'app_opened' // 로그인한 사람이 앱을 열었다 (방문자와 실제 사용자를 구분하는 기준)
+  | 'error_occurred'; // 오류가 났다는 사실만. 내용은 Sentry에만 간다
 
 type Value = string | number | boolean | null | undefined;
 export type Props = Record<string, Value>;
@@ -75,6 +77,10 @@ export function initAnalytics() {
     capture_pageview: true,
     person_profiles: 'identified_only',
   });
+  // 운영 대시보드에 "하루에 오류가 몇 번 났나"를 같이 보이기 위한 횟수 집계.
+  // 오류 메시지에는 사용자 콘텐츠가 섞일 수 있어 싣지 않는다 — 자세한 내용은 Sentry에서 본다.
+  window.addEventListener('error', () => track('error_occurred', { kind: 'error' }));
+  window.addEventListener('unhandledrejection', () => track('error_occurred', { kind: 'rejection' }));
 }
 
 export function track(event: EventName, props: Props = {}) {

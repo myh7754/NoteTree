@@ -9,7 +9,7 @@ import { useAuth } from './hooks/useAuth';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { parseRoute } from './utils/route';
 import { initSentry } from './lib/sentry';
-import { initAnalytics, identify } from './lib/analytics';
+import { initAnalytics, identify, track } from './lib/analytics';
 import { Analytics } from '@vercel/analytics/react';
 import { onAccountShortcuts } from './db/shortcutSync';
 import { useMindMapStore } from './store/useMindMapStore';
@@ -36,7 +36,10 @@ function Root() {
   // 분석 도구에 넘기는 식별자는 UUID 하나뿐이다. 이메일·이름은 넘기지 않는다.
   const uid = session?.user.id;
   React.useEffect(() => {
-    if (uid) identify(uid);
+    if (uid) {
+      identify(uid);
+      track('app_opened');
+    }
   }, [uid]);
 
   const route = parseRoute(location.pathname);
