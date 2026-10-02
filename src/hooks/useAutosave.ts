@@ -3,7 +3,7 @@ import type { MindMapData } from '../types';
 import { useMindMapStore } from '../store/useMindMapStore';
 import { saveMindMap } from '../db/mindmapDB';
 import { createTabSync, type TabSync } from '../db/tabSync';
-import { pushMap, quotaMessage } from '../db/cloudSync';
+import { pushMap } from '../db/cloudSync';
 import { maybeAutoPublish } from '../db/publish';
 
 const AUTOSAVE_DELAY = 500;
