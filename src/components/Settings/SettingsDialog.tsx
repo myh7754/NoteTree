@@ -16,6 +16,7 @@ import { track } from '../../lib/analytics';
 import { HandleForm } from '../Toolbar/HandleForm';
 import { MAP_THEMES, type MapTheme } from '../../utils/mapTheme';
 import { ShortcutList } from '../ShortcutsHelp/ShortcutsHelp';
+import { BYTES_PER_NODE, QUOTA_BYTES, getStorageUsed } from '../../db/storage';
 
 /**
  * 설정창.
@@ -417,6 +418,51 @@ function PublishTab() {
   );
 }
 
+/**
+ * 클라우드 저장 공간을 얼마나 썼는지. 노드 개수에는 제한이 없고 전체 용량에만 상한이 있어서,
+ * "노드로 치면 얼마나 더 들어가는지"를 어림으로 같이 보여 준다.
+ */
+function StorageRow() {
+  const [used, setUsed] = useState<number | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getStorageUsed()
+      .then((v) => alive && setUsed(v))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (used === null) return null; // 못 읽었으면 틀린 숫자를 보여 주느니 숨긴다
+  const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
+  const percent = Math.min(100, (used / QUOTA_BYTES) * 100);
+  const nodesLeft = Math.max(0, Math.floor((QUOTA_BYTES - used) / BYTES_PER_NODE / 100) * 100);
+  return (
+    <Row
+      label="저장 공간"
+      hint={`노드 개수에는 제한이 없습니다. 노트를 포함한 노드로 약 ${nodesLeft.toLocaleString()}개 더 넣을 수 있습니다.`}
+    >
+      <div
+        className="h-2 overflow-hidden rounded bg-slate-800"
+        role="progressbar"
+        aria-label="저장 공간 사용량"
+        aria-valuenow={Math.round(percent)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <div
+          className={`h-full rounded ${percent > 90 ? 'bg-amber-500' : 'bg-indigo-500'}`}
+          style={{ width: `${Math.max(percent, 1)}%` }}
+        />
+      </div>
+      <div className="mt-1 text-[11px] text-slate-400">
+        {mb(used)}MB / {mb(QUOTA_BYTES)}MB 사용 ({percent.toFixed(1)}%)
+      </div>
+    </Row>
+  );
+}
+
 function AccountTab() {
   const { session } = useAuth();
   const [confirming, setConfirming] = useState(false);
@@ -445,6 +491,8 @@ function AccountTab() {
       <Row label="계정" hint="로그인에 쓴 GitHub 또는 Google 계정입니다.">
         <div className="truncate text-xs text-slate-300">{session.user.email ?? '이메일 없음'}</div>
       </Row>
+
+      <StorageRow />
 
       <Row label="개인정보" hint="수집 항목, 보관 기간, 국외 이전 사업자를 적어 두었습니다.">
         <a className="text-xs text-indigo-400 hover:text-indigo-300" href="/privacy">

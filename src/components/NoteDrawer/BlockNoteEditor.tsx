@@ -2,6 +2,17 @@ import { useEffect, useRef } from 'react';
 import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
+import { Extension, textInputRule } from '@tiptap/core';
+import { ko } from '@blocknote/core/locales';
+import { SYMBOL_RULES } from '../../utils/symbolRules';
+
+// -> 를 치면 → 로, != 를 치면 ≠ 로 바꾼다. 코드 안에서는 바뀌지 않는다.
+const SymbolShortcuts = Extension.create({
+  name: 'symbolShortcuts',
+  addInputRules() {
+    return SYMBOL_RULES.map(([find, replace]) => textInputRule({ find, replace }));
+  },
+});
 
 interface BlockNoteEditorProps {
   nodeId: string | null;
@@ -26,6 +37,10 @@ export function BlockNoteEditor({ nodeId, note, editable = true, onSave }: Block
 
   const editor = useCreateBlockNote({
     initialContent: parseNoteBlocks(note),
+    _tiptapOptions: { extensions: [SymbolShortcuts] },
+    // 메뉴와 안내 문구를 한국어로 — "/ 를 누르면 메뉴가 나온다"는 안내가 영어면 마크다운을
+    // 모르는 사람은 그 메뉴가 있는 줄도 모른다
+    dictionary: ko,
   });
 
   // nodeId가 바뀌면 해당 노드의 note로 에디터 내용 교체

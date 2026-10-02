@@ -14,3 +14,103 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
 .react-flow__nodesselection-rect {
   display: none;
 }
+
+/* ─── 노트 모양: 공부 노트형 (2026-10-03) ───────────────────────────
+   편집기(BlockNote) 기본 모양은 넓은 문서용이라, 맵 옆의 좁은 노트 창에서는 제목이
+   본문의 3배 크기로 화면을 다 차지했다. 모양만 덮어쓴다 — 저장되는 내용은 그대로다.
+   - 제목을 줄이고 제목 위에 여백을 둔다 (주제가 바뀌는 곳이 보이게)
+   - 인용은 "핵심" 상자, 굵은 글씨는 형광펜 (외울 것이 먼저 눈에 들어오게) */
+/* 편집기 자체 규칙과 같은 무게라 나중에 불러온 쪽이 이긴다 → 바깥 래퍼를 붙여 확실히 이기게 한다 */
+.bn-container .bn-container[data-color-scheme='dark'] {
+  --bn-colors-editor-background: #0f172a;
+  --bn-colors-editor-text: #cbd5e1;
+}
+.bn-container .bn-editor {
+  max-width: 760px;
+  padding-inline: 48px 24px; /* 왼쪽은 블록 손잡이 자리 */
+  padding-block: 12px 32px;
+  font-size: 15px;
+}
+.bn-container .bn-block-outer {
+  line-height: 1.8;
+}
+.bn-container [data-content-type='heading'] {
+  --level: 1.5em;
+  padding-top: 8px;
+  color: #f8fafc;
+  line-height: 1.35;
+}
+.bn-container [data-content-type='heading'][data-level='2'] {
+  --level: 1.15em;
+  padding-top: 22px;
+  align-items: center;
+  gap: 9px;
+}
+.bn-container [data-content-type='heading'][data-level='2']::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: #818cf8;
+}
+.bn-container [data-content-type='heading'][data-level='3'] {
+  --level: 1em;
+  padding-top: 12px;
+  color: #e2e8f0;
+}
+.bn-container [data-content-type='quote'] blockquote {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #57430f;
+  border-radius: 8px;
+  background: #1c1917;
+  color: #fde68a;
+}
+.bn-container [data-content-type='quote'] blockquote::before {
+  content: '핵심';
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #e0af68;
+}
+.bn-container .bn-inline-content strong {
+  font-weight: 600;
+  color: #f8fafc;
+  background: linear-gradient(transparent 62%, #3b3f8f 62%);
+}
+.bn-container .bn-inline-content code {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #1e293b;
+  color: #a5b4fc;
+  font-family: Consolas, 'SFMono-Regular', monospace;
+  font-size: 0.88em;
+}
+.bn-container .bn-block-content[data-content-type='codeBlock'] {
+  border: 1px solid #1e293b;
+  background-color: #020617;
+  color: #e2e8f0;
+}
+.bn-container .bn-block-content[data-content-type='codeBlock'] > pre {
+  padding: 28px 16px 14px;
+  font-family: Consolas, 'SFMono-Regular', monospace;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.bn-container .bn-editor [data-content-type='table'] th,
+.bn-container .bn-editor [data-content-type='table'] td {
+  border-color: #334155;
+  padding: 6px 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.bn-container .bn-editor [data-content-type='table'] th {
+  background: #111c33;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+.bn-container .bn-block-content[data-content-type='checkListItem'][data-checked='true'] .bn-inline-content {
+  color: #64748b;
+}

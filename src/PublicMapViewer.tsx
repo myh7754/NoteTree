@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { CONTACT } from './utils/contact';
 import type { MindMapData } from './types';
 import { MindMapCanvas } from './components/MindMapCanvas/MindMapCanvas';
 import { NoteDrawer } from './components/NoteDrawer/NoteDrawer';
@@ -105,6 +106,16 @@ export function PublicMapViewer({ handle, slug }: { handle: string; slug: string
 
         <div className="flex-1" />
 
+        {/* 누구나 글을 공개할 수 있으므로, 부적절한 내용을 알릴 통로를 둔다 */}
+        {state === 'ready' && (
+          <a
+            className="text-[11px] text-slate-500 hover:text-slate-300"
+            href={`mailto:${CONTACT}?subject=${encodeURIComponent('공개 맵 신고')}&body=${encodeURIComponent(location.href)}`}
+            title={`부적절한 내용이면 알려 주세요 (${CONTACT})`}
+          >
+            신고
+          </a>
+        )}
         <AccountMenu />
         <button className={btn} onClick={() => setShortcutsOpen(true)} title="단축키 (?)" aria-label="단축키">
           ⌨

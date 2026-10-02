@@ -20,6 +20,7 @@
     "@mantine/hooks": "^9.2.2",
     "@sentry/react": "^11.1.0",
     "@supabase/supabase-js": "^2.112.3",
+    "@tiptap/core": "^3.24.0",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@vercel/analytics": "^2.0.1",

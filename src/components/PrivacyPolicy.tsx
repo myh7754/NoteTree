@@ -4,8 +4,9 @@
  * 내용은 "지금 실제로 하는 처리"만 적는다 — 아직 붙이지 않은 도구를 미리 적어두면 사실과
  * 다른 고지가 된다. 도구를 붙이거나 떼는 날 이 파일도 같이 고친다.
  */
+import { CONTACT } from '../utils/contact';
+
 const UPDATED = '2026-10-02';
-const CONTACT = 'myh4755@gmail.com';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

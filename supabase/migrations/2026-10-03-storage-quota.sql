@@ -20,7 +20,7 @@ begin
     from public.maps
     where owner_id = new.owner_id
       and id <> new.id;
-  if used + new.size_bytes > 52428800 then
+  if used + new.size_bytes > 31457280 then
     raise exception 'QUOTA_EXCEEDED';
   end if;
   return new;

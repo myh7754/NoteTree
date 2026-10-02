@@ -144,7 +144,7 @@ export async function pushMap(mapId: string): Promise<void> {
 /**
  * DB가 용량 상한 때문에 저장을 거부했으면 사용자에게 보여 줄 문장을, 아니면 null을 돌려준다.
  *
- * 상한은 DB 트리거(maps_enforce_quota)가 건다: 맵 하나 10MB, 한 사람 전체 50MB.
+ * 상한은 DB 트리거(maps_enforce_quota)가 건다: 맵 하나 10MB, 한 사람 전체 30MB.
  * 노드 개수 제한은 없다 — 누군가 무료 DB(500MB)를 혼자 채워 모두의 저장이 멈추는 일만 막는다.
  * 숫자를 바꾸려면 supabase/schema.sql의 트리거와 아래 문장을 같이 고친다.
  */
@@ -152,6 +152,6 @@ export function quotaMessage(dbMessage: string): string | null {
   const tail = ' 이 브라우저에는 저장돼 있습니다.';
   if (dbMessage.includes('MAP_TOO_LARGE')) return '이 맵이 10MB를 넘어 클라우드에 올리지 못했습니다.' + tail;
   if (dbMessage.includes('QUOTA_EXCEEDED'))
-    return '계정 저장 공간(50MB)이 가득 차 클라우드에 올리지 못했습니다. 안 쓰는 맵을 지우면 30일 뒤 공간이 납니다.' + tail;
+    return '계정 저장 공간(30MB)이 가득 차 클라우드에 올리지 못했습니다. 안 쓰는 맵을 지우면 30일 뒤 공간이 납니다.' + tail;
   return null;
 }

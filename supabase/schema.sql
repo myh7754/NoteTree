@@ -133,7 +133,7 @@ select cron.schedule(
 -- 용량 상한 (2026-10-03). 노드 개수 제한은 두지 않는다 — 이 앱을 만든 이유가 그것이다.
 -- 막는 것은 하나: 누군가 무료 DB(500MB)를 혼자 채워 모든 사용자의 저장이 멈추는 일.
 --   맵 하나      10MB  (217노드짜리 맵이 약 0.36MB)
---   한 사람 전체  50MB  (지운 지 30일이 안 된 맵 포함 — 만들고 지우기를 반복해 우회하지 못하게)
+--   한 사람 전체  30MB  (지운 지 30일이 안 된 맵 포함 — 만들고 지우기를 반복해 우회하지 못하게)
 -- 숫자를 바꾸면 src/db/cloudSync.ts의 quotaMessage 문장도 같이 고친다.
 -- 적용 절차는 migrations/2026-10-03-storage-quota.sql 참고.
 -- ─────────────────────────────────────────────────────────────
@@ -153,7 +153,7 @@ begin
   select coalesce(sum(size_bytes), 0) into used
     from public.maps
     where owner_id = new.owner_id and id <> new.id;
-  if used + new.size_bytes > 52428800 then
+  if used + new.size_bytes > 31457280 then
     raise exception 'QUOTA_EXCEEDED';
   end if;
   return new;
