@@ -97,13 +97,15 @@ export function AccountMenu() {
                   Google로 계속하기
                 </button>
                 {/* 카카오 버튼 색(#FEE500)과 글자색은 카카오 디자인 지침에 정해진 값이다 */}
-                <button
-                  className="flex h-9 w-full items-center justify-center gap-2 rounded-md bg-[#FEE500] text-xs font-medium text-[#191919] hover:bg-[#f5dc00]"
-                  onClick={() => handleSignIn('kakao')}
-                >
-                  <KakaoIcon />
-                  카카오로 계속하기
-                </button>
+                {KAKAO_READY && (
+                  <button
+                    className="flex h-9 w-full items-center justify-center gap-2 rounded-md bg-[#FEE500] text-xs font-medium text-[#191919] hover:bg-[#f5dc00]"
+                    onClick={() => handleSignIn('kakao')}
+                  >
+                    <KakaoIcon />
+                    카카오로 계속하기
+                  </button>
+                )}
               </div>
               {state === 'error' && (
                 <div className="mt-2 text-[11px] text-red-300 break-words">{message}</div>
@@ -196,6 +198,11 @@ function GitHubIcon() {
     </svg>
   );
 }
+
+// 카카오 쪽 설정이 끝날 때까지 버튼을 숨긴다. Supabase는 카카오에 이메일을 항상 같이
+// 요청하는데, 카카오는 비즈 앱이 아니면 이메일 동의 항목을 켤 수 없어 KOE205 오류가 난다
+// (2026-10-04 실제로 확인). 비즈 앱 전환 + 이메일 동의 항목 설정 후 true로 바꾼다.
+const KAKAO_READY = false;
 
 function KakaoIcon() {
   return (
