@@ -6,7 +6,7 @@
  */
 import { CONTACT } from '../utils/contact';
 
-const UPDATED = '2026-10-02';
+const UPDATED = '2026-10-04';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -30,8 +30,9 @@ export function PrivacyPolicy() {
         <Section title="1. 수집하는 항목">
           <ul className="list-disc space-y-1 pl-5">
             <li>
-              <b className="text-slate-200">계정 정보</b> — GitHub 또는 Google 로그인 과정에서 제공되는
-              이메일과 프로필 정보. 비밀번호는 저장하지 않습니다.
+              <b className="text-slate-200">계정 정보</b> — GitHub, Google 또는 카카오 로그인 과정에서
+              제공되는 이메일과 프로필 정보(카카오는 닉네임과 프로필 사진). 비밀번호는 저장하지
+              않습니다.
             </li>
             <li>
               <b className="text-slate-200">이용자가 만든 내용</b> — 마인드맵의 노드, 노트, 제목.
@@ -102,6 +103,11 @@ export function PrivacyPolicy() {
                   <td className="border border-slate-700 px-2 py-1">Google</td>
                   <td className="border border-slate-700 px-2 py-1">로그인 인증</td>
                   <td className="border border-slate-700 px-2 py-1">미국</td>
+                </tr>
+                <tr>
+                  <td className="border border-slate-700 px-2 py-1">카카오</td>
+                  <td className="border border-slate-700 px-2 py-1">로그인 인증</td>
+                  <td className="border border-slate-700 px-2 py-1">대한민국</td>
                 </tr>
                 <tr>
                   <td className="border border-slate-700 px-2 py-1">Sentry</td>

@@ -49,7 +49,9 @@ export function useAuth(): AuthState {
   return { session, ready, cloudEnabled: isCloudEnabled };
 }
 
-export async function signInWith(provider: 'github' | 'google'): Promise<void> {
+export type AuthProvider = 'github' | 'google' | 'kakao';
+
+export async function signInWith(provider: AuthProvider): Promise<void> {
   if (!supabase) return;
   const { error } = await supabase.auth.signInWithOAuth({
     provider,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth, signInWith, signOut } from '../../hooks/useAuth';
+import { useAuth, signInWith, signOut, type AuthProvider } from '../../hooks/useAuth';
 import { syncNow } from '../../db/cloudSync';
 import { useMindMapStore } from '../../store/useMindMapStore';
 import { listMaps, loadMindMap } from '../../db/mindmapDB';
@@ -52,7 +52,7 @@ export function AccountMenu() {
     }
   };
 
-  const handleSignIn = async (provider: 'github' | 'google') => {
+  const handleSignIn = async (provider: AuthProvider) => {
     try {
       await signInWith(provider);
     } catch (e) {
@@ -95,6 +95,14 @@ export function AccountMenu() {
                 >
                   <GoogleIcon />
                   Google로 계속하기
+                </button>
+                {/* 카카오 버튼 색(#FEE500)과 글자색은 카카오 디자인 지침에 정해진 값이다 */}
+                <button
+                  className="flex h-9 w-full items-center justify-center gap-2 rounded-md bg-[#FEE500] text-xs font-medium text-[#191919] hover:bg-[#f5dc00]"
+                  onClick={() => handleSignIn('kakao')}
+                >
+                  <KakaoIcon />
+                  카카오로 계속하기
                 </button>
               </div>
               {state === 'error' && (
@@ -185,6 +193,17 @@ function GitHubIcon() {
   return (
     <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
       <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+    </svg>
+  );
+}
+
+function KakaoIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#191919"
+        d="M12 3C6.5 3 2 6.5 2 10.8c0 2.8 1.9 5.2 4.7 6.6l-1 3.6c-.1.4.3.7.6.4l4.3-2.9c.5.1.9.1 1.4.1 5.5 0 10-3.5 10-7.8S17.5 3 12 3z"
+      />
     </svg>
   );
 }
