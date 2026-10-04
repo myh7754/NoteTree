@@ -27,7 +27,7 @@ describe('Toolbar', () => {
    */
   it('파일 입출력 버튼은 툴바에 직접 노출되지 않는다', () => {
     render(<Toolbar />);
-    // 아이콘이 앞에 붙으므로(💾 JSON 저장) 부분 일치로 본다 — 정확 일치는 그냥 통과해버린다
+    // 부분 일치로 본다 — 정확 일치는 그냥 통과해버린다
     for (const label of [/JSON 저장/, /MD 가져오기/, /MD 내보내기/, /PNG/]) {
       expect(screen.queryByText(label)).not.toBeInTheDocument();
     }

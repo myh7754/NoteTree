@@ -53,6 +53,25 @@ describe('NodeActionBar', () => {
     expect(store().mindMapData.nodes[a].style?.color).toBe('#1d4ed8');
   });
 
+  it('색은 도구가 붙은 노드에 칠한다 — 스토어의 선택이 다른 노드를 가리켜도', () => {
+    // 노트 창의 링크를 누르면 selectedNodeId만 바뀌고 도구는 원래 노드에 남는다
+    store().setSelectedNodeId(rootId);
+    render(<NodeActionBar id={a} />);
+    fireEvent.click(screen.getByRole('button', { name: '파랑' }));
+    expect(store().mindMapData.nodes[a].style?.color).toBe('#1d4ed8');
+    expect(store().mindMapData.nodes[rootId].style?.color).toBeUndefined();
+  });
+
+  it('읽기전용에서는 노트 버튼만 있다 — 방문자가 노트 아이콘이 없는 노드의 노트와 역링크도 열 수 있게', () => {
+    useMindMapStore.setState({ readOnly: true });
+    render(<NodeActionBar id={a} />);
+    expect(screen.getByRole('button', { name: /노트/ })).toBeInTheDocument();
+    for (const name of [/자식/, /표/, '파랑', '삭제']) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+    }
+    useMindMapStore.setState({ readOnly: false });
+  });
+
   it('삭제는 그 노드를 지운다', () => {
     render(<NodeActionBar id={a} />);
     fireEvent.click(screen.getByRole('button', { name: '삭제' }));

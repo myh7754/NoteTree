@@ -161,7 +161,7 @@ export function AccountMenu() {
               로그아웃
             </button>
             <div className="mt-1 text-[10px] text-slate-600">로그아웃해도 이 브라우저의 맵은 남습니다.</div>
-            {/* 탈퇴·처리방침은 설정창(⚙)의 계정 탭으로 옮겼다 — 같은 것을 두 곳에 두면
+            {/* 탈퇴·처리방침은 설정창의 계정 탭으로 옮겼다 — 같은 것을 두 곳에 두면
                 한쪽만 고쳐지는 날이 온다. */}
             <button
               className="mt-3 w-full border-t border-slate-800 pt-2 text-left text-[11px] text-slate-500 hover:text-slate-300"

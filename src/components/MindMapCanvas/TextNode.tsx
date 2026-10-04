@@ -99,8 +99,9 @@ export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps
         />
       )}
 
-      {/* 노드에 하는 일은 고른 노드 위에 뜬다. 이름을 고치는 중에는 입력칸을 가리므로 숨긴다. */}
-      {selected && !readOnly && !editing && <NodeActionBar id={id} />}
+      {/* 노드에 하는 일은 고른 노드 위에 뜬다. 이름을 고치는 중에는 입력칸을 가리므로 숨긴다.
+          읽기전용에서도 띄운다 — 그때는 노트 버튼만 들어 있다. */}
+      {selected && !editing && <NodeActionBar id={id} />}
 
       {hasChildren && (
         <button

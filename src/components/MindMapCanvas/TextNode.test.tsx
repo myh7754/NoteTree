@@ -68,10 +68,11 @@ describe('TextNode 노드 도구', () => {
     expect(screen.queryByTitle('삭제')).not.toBeInTheDocument();
   });
 
-  it('읽기전용에서는 골라도 뜨지 않는다', () => {
+  it('읽기전용에서도 고르면 뜬다 — 노트 버튼만 들어 있다', () => {
     useMindMapStore.setState({ readOnly: true });
     renderNode(a, true);
-    expect(screen.queryByTestId('node-toolbar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('node-toolbar')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '삭제' })).not.toBeInTheDocument();
   });
 
   it('이름을 고치는 중에는 뜨지 않는다 — 입력칸을 가린다', () => {

@@ -14,19 +14,17 @@ const PALETTE = [
 ];
 
 /**
- * 선택한 노드의 색을 바꾼다. "가지" 를 켜면 후손까지 함께 칠해
+ * 노드 하나의 색을 바꾼다 (고른 노드 위의 NodeActionBar 안에 들어간다).
+ * 대상은 스토어의 selectedNodeId가 아니라 넘겨받은 id다 — 노트 창의 링크를 누르면
+ * selectedNodeId만 바뀌고 도구는 원래 노드에 남아서, 스토어를 따르면 엉뚱한 노드를 칠한다.
+ * "가지" 를 켜면 후손까지 함께 칠해
  * 과목 안에서 주제별로 색을 나눌 수 있다.
  */
-export function NodeStyleBar() {
-  const selectedNodeId = useMindMapStore((s) => s.selectedNodeId);
+export function NodeStyleBar({ id }: { id: string }) {
   const setNodeColor = useMindMapStore((s) => s.setNodeColor);
-  const currentColor = useMindMapStore((s) =>
-    s.selectedNodeId ? s.mindMapData.nodes[s.selectedNodeId]?.style?.color : undefined
-  );
+  const currentColor = useMindMapStore((s) => s.mindMapData.nodes[id]?.style?.color);
 
   const [includeSubtree, setIncludeSubtree] = useState(false);
-
-  if (!selectedNodeId) return null;
 
   return (
     <div className="flex items-center gap-1">
@@ -37,7 +35,7 @@ export function NodeStyleBar() {
             currentColor === c.value ? 'border-white' : 'border-slate-600'
           }`}
           style={{ background: c.value }}
-          onClick={() => setNodeColor(selectedNodeId, c.value, includeSubtree)}
+          onClick={() => setNodeColor(id, c.value, includeSubtree)}
           title={includeSubtree ? `${c.name} (가지 전체)` : c.name}
           aria-label={c.name}
         />
@@ -46,7 +44,7 @@ export function NodeStyleBar() {
         className={`flex items-center justify-center w-4 h-4 rounded-full border border-slate-600 bg-slate-700 text-[9px] leading-none text-slate-300 hover:scale-110 transition-transform ${
           currentColor ? '' : 'border-white'
         }`}
-        onClick={() => setNodeColor(selectedNodeId, null, includeSubtree)}
+        onClick={() => setNodeColor(id, null, includeSubtree)}
         title="기본색으로"
         aria-label="색 없음"
       >

@@ -118,7 +118,7 @@ export const TableNode = memo(function TableNode({ data, id, selected }: NodePro
         </tbody>
       </table>
 
-      {selected && !readOnly && <NodeActionBar id={id} />}
+      {selected && <NodeActionBar id={id} />}
 
       <Handle type="source" position={Position.Right} className="!opacity-0" />
     </div>
