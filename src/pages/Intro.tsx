@@ -1,6 +1,7 @@
 import { AccountMenu } from '../components/Toolbar/AccountMenu';
 import { Logo } from '../components/Logo';
 import { IntroPreview } from './IntroPreview';
+import { CONTACT } from '../utils/contact';
 
 /**
  * 비로그인 첫 화면 (/).
@@ -79,6 +80,10 @@ export function Intro() {
           <span className="mx-2 text-[11px] text-slate-600">·</span>
           <a href="/privacy" className="text-[11px] text-slate-600 hover:text-slate-400">
             개인정보 처리방침
+          </a>
+          <span className="mx-2 text-[11px] text-slate-600">·</span>
+          <a href={`mailto:${CONTACT}`} className="text-[11px] text-slate-600 hover:text-slate-400">
+            문의 {CONTACT}
           </a>
         </footer>
       </main>

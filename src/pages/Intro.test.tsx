@@ -36,6 +36,12 @@ describe('Intro', () => {
     expect(screen.getByRole('link', { name: '개인정보 처리방침' })).toHaveAttribute('href', '/privacy');
   });
 
+  // 주소가 글자로 보여야 한다 — 메일 앱이 없는 사람은 링크를 눌러도 아무 일이 없어 복사해서 쓴다
+  it('문의 메일 주소가 보이고 누르면 메일 쓰기로 간다', () => {
+    render(<Intro />);
+    expect(screen.getByRole('link', { name: /문의.*@/ })).toHaveAttribute('href', expect.stringMatching(/^mailto:.+@/));
+  });
+
   it('로고는 NoteTree다', () => {
     render(<Intro />);
     expect(screen.getByText('NoteTree')).toBeInTheDocument();
