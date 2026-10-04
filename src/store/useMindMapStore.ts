@@ -109,7 +109,7 @@ function getHiddenIds(
 }
 
 // nodeId의 후손(자기 자신 포함) 집합. 순환 방지 검증에 사용.
-function collectSubtree(nodeId: string, children: Record<string, string[]>): Set<string> {
+export function collectSubtree(nodeId: string, children: Record<string, string[]>): Set<string> {
   const set = new Set<string>();
   const queue = [nodeId];
   while (queue.length > 0) {

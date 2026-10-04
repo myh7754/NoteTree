@@ -1,7 +1,7 @@
 import { memo, useState, useRef, useEffect } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { MindMapNode } from '../../types';
-import { useMindMapStore } from '../../store/useMindMapStore';
+import { useMindMapStore, collectSubtree } from '../../store/useMindMapStore';
 import { hasNoteContent } from '../../utils/noteText';
 import { NoteIconButton } from './NoteIconButton';
 import { nodeLook, treeMeta } from '../../utils/mapTheme';
@@ -24,6 +24,8 @@ export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps
   const onLeft = (meta.branch.get(id) ?? -1) >= leftBranchStart(rootKidCount, directionOf(mindMapData));
   // 밑줄형은 선이 밑줄로 이어지도록 연결점을 아래로 내린다
   const handleStyle = look.anchor === 'bottom' ? { top: 'calc(100% + 1px)' } : undefined;
+  // 접힌 가지가 얼마나 큰지 펼치지 않고도 알 수 있게 숨은 후손 수를 적는다 (자기 자신은 뺀다)
+  const hiddenCount = data.collapsed ? collectSubtree(id, mindMapData.children).size - 1 : 0;
 
   useEffect(() => {
     setLabel(data.label);
@@ -110,12 +112,17 @@ export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps
 
       {hasChildren && (
         <button
+          // 노드 밖에 떠 있어(absolute) 숫자가 길어져도 노드 폭은 그대로다.
           // before:-inset-2 = 보이는 크기는 그대로 두고 클릭 판정만 사방 8px 넓힌다.
-          className={`absolute ${onLeft ? '-left-5' : '-right-5'} top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-700 border border-slate-500 text-sm leading-none flex items-center justify-center text-slate-200 hover:bg-indigo-600 hover:border-indigo-400 z-10 before:absolute before:-inset-2 before:content-['']`}
+          // 펼친 가지의 −는 마우스를 올리거나 골랐을 때만 보인다 — 늘 보이면 맵이 버튼으로 뒤덮인다.
+          className={`absolute ${onLeft ? 'right-full mr-1' : 'left-full ml-1'} top-1/2 -translate-y-1/2 h-5 min-w-5 px-1 rounded-full bg-slate-700 border border-slate-500 text-[10px] leading-none flex items-center justify-center text-slate-200 hover:bg-indigo-600 hover:border-indigo-400 z-10 before:absolute before:-inset-2 before:content-[''] ${
+            data.collapsed || selected ? '' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'
+          }`}
           onClick={(e) => { e.stopPropagation(); toggleCollapse(id); }}
-          title={data.collapsed ? '펼치기' : '접기'}
+          title={data.collapsed ? `펼치기 (숨은 노드 ${hiddenCount}개)` : '접기'}
+          aria-label={data.collapsed ? `펼치기 (숨은 노드 ${hiddenCount}개)` : '접기'}
         >
-          {data.collapsed ? '+' : '−'}
+          {data.collapsed ? `+${hiddenCount}` : '−'}
         </button>
       )}
 
