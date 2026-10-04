@@ -26,28 +26,36 @@ const toBlob = (canvas: HTMLCanvasElement, type: string) =>
 
 /**
  * 올리기 전에 브라우저에서 줄인다. 저장소는 받은 파일을 그대로 보관할 뿐이라 여기서 줄여야 용량이 준다.
- * 이미 작은 사진(화면 캡처 대부분)은 건드리지 않는다 — 다시 압축하면 글자가 흐려지기만 한다.
+ * 이미 작은 PNG·WebP(화면 캡처 대부분)는 건드리지 않는다 — 다시 압축하면 글자가 흐려지기만 한다.
+ * JPEG는 작아도 다시 저장한다: 휴대폰 사진에는 찍은 위치(EXIF)가 들어 있고, 사진 주소는 공개다.
+ * 그 밖의 형식(AVIF, BMP 등)도 다시 저장한다 — 저장소가 받는 형식이 아니다.
  */
 export async function shrinkImage(file: File): Promise<Blob> {
   // 움직이는 GIF는 캔버스에 그리면 첫 장면만 남는다
   if (file.type === 'image/gif') return file;
-  const bitmap = await createImageBitmap(file);
+  const bitmap = await createImageBitmap(file).catch(() => {
+    throw new Error('이 사진 형식은 읽지 못했습니다. JPG나 PNG로 바꿔서 넣어 주세요.');
+  });
   const { width, height } = fitWithin(bitmap.width, bitmap.height, IMAGE_MAX_SIDE);
-  if (width === bitmap.width && file.size <= IMAGE_MAX_BYTES) return file;
+  const keep = file.type === 'image/png' || file.type === 'image/webp';
+  if (keep && width === bitmap.width && file.size <= IMAGE_MAX_BYTES) return file;
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d')!;
-  // JPEG로 떨어질 때 투명한 곳이 검게 나오지 않도록
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, width, height);
   ctx.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
 
   // WebP로 저장하지 못하는 브라우저는 요청을 무시하고 PNG를 돌려준다(오히려 커진다) — 그때는 JPEG로
-  const webp = await toBlob(canvas, 'image/webp');
-  const blob = webp?.type === 'image/webp' ? webp : await toBlob(canvas, 'image/jpeg');
+  let blob = await toBlob(canvas, 'image/webp');
+  if (blob?.type !== 'image/webp') {
+    // JPEG에는 투명이 없다. 투명한 곳이 검게 나오지 않도록 그림 뒤에 흰색을 깐다
+    ctx.globalCompositeOperation = 'destination-over';
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, width, height);
+    blob = await toBlob(canvas, 'image/jpeg');
+  }
   if (!blob) throw new Error('사진을 읽지 못했습니다.');
   return blob;
 }
@@ -67,8 +75,8 @@ export async function uploadNoteImage(file: File, shrink = shrinkImage): Promise
   const path = `${userId}/${crypto.randomUUID()}.${blob.type.split('/')[1]}`;
   const { error } = await supabase.storage
     .from(BUCKET)
-    // 이름이 무작위라 내용이 바뀔 일이 없다 — 오래 캐시해도 된다
-    .upload(path, blob, { contentType: blob.type, cacheControl: '31536000' });
+    // 캐시 시간은 기본값(1시간)을 둔다 — 길게 잡으면 탈퇴로 지운 사진이 그만큼 더 보인다
+    .upload(path, blob, { contentType: blob.type });
   if (error) {
     // 본인 폴더에 올리는데 정책이 거부했다면 남은 이유는 계정 한도뿐이다
     if (error.message.includes('row-level security')) {

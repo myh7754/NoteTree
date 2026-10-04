@@ -47,8 +47,12 @@ Deno.serve(async (req) => {
       const { data: files, error: listErr } = await images.list(data.user.id, { limit: 1000 });
       if (listErr) throw listErr;
       if (!files.length) break;
-      const { error: rmErr } = await images.remove(files.map((f) => `${data.user.id}/${f.name}`));
+      const { data: removed, error: rmErr } = await images.remove(
+        files.map((f) => `${data.user.id}/${f.name}`)
+      );
       if (rmErr) throw rmErr;
+      // 지워진 것이 없는데 목록은 남아 있다면 같은 목록을 영원히 돌게 된다
+      if (!removed?.length) throw new Error('note-images: 지울 수 없는 항목이 남아 있음');
     }
 
     // maps·profiles는 on delete cascade로 함께 사라진다.

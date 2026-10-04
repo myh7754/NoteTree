@@ -206,5 +206,7 @@ create policy "본인 폴더에만 사진 올리기"
   with check (
     bucket_id = 'note-images'
     and (storage.foldername(name))[1] = (select auth.uid())::text
+    -- 하위 폴더를 만들지 못하게 한다. 탈퇴 함수가 본인 폴더 바로 아래만 지운다
+    and array_length(storage.foldername(name), 1) = 1
     and public.note_images_used() < 52428800
   );

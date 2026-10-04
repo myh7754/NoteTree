@@ -58,10 +58,11 @@ export function BlockNoteEditor({ nodeId, note, editable = true, onSave }: Block
           try {
             return await uploadNoteImage(file);
           } catch (err) {
-            // 편집기는 실패해도 "업로드 실패"라고만 하거나(파일 고르기) 아무 말도 없다(붙여넣기).
-            // 이유(로그인 필요, 공간 부족)는 여기서 알린다.
+            // 이유(로그인 필요, 공간 부족)는 여기서 알린다. 다시 던지지 않는다 — 편집기의 붙여넣기·끌어다
+            // 놓기 경로는 실패를 받아 주지 않아서, 던지면 처리되지 않은 오류로 운영 기록에 쌓인다.
+            // 빈 값을 돌려주면 편집기가 빈 사진 칸을 그대로 둔다(거기서 다시 고를 수 있다).
             setUploadError(err instanceof Error ? err.message : '사진을 올리지 못했습니다.');
-            throw err;
+            return {};
           }
         }
       : undefined,
