@@ -90,7 +90,7 @@ export function AccountMenu() {
                   GitHub로 계속하기
                 </button>
                 <button
-                  className="flex h-9 w-full items-center justify-center gap-2 rounded-md bg-white text-xs font-medium text-slate-800 hover:bg-slate-100 border border-slate-300"
+                  className="flex h-9 w-full items-center justify-center gap-2 rounded-md bg-white text-xs font-medium text-[#1f2937] hover:bg-[#f1f5f9] border border-[#cbd5e1]"
                   onClick={() => handleSignIn('google')}
                 >
                   <GoogleIcon />

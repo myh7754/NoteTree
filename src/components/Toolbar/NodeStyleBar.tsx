@@ -32,7 +32,7 @@ export function NodeStyleBar({ id }: { id: string }) {
         <button
           key={c.value}
           className={`w-4 h-4 rounded-full border transition-transform hover:scale-110 ${
-            currentColor === c.value ? 'border-white' : 'border-slate-600'
+            currentColor === c.value ? 'border-slate-50' : 'border-slate-600'
           }`}
           style={{ background: c.value }}
           onClick={() => setNodeColor(id, c.value, includeSubtree)}
@@ -42,7 +42,7 @@ export function NodeStyleBar({ id }: { id: string }) {
       ))}
       <button
         className={`flex items-center justify-center w-4 h-4 rounded-full border border-slate-600 bg-slate-700 text-[9px] leading-none text-slate-300 hover:scale-110 transition-transform ${
-          currentColor ? '' : 'border-white'
+          currentColor ? '' : 'border-slate-50'
         }`}
         onClick={() => setNodeColor(id, null, includeSubtree)}
         title="기본색으로"

@@ -23,6 +23,9 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
   --node-surface: #0f172a;
   --node-strong: #f8fafc;
   --node-text: #cbd5e1;
+  /* 상자 모양에서 큰 가지 아래 상자의 바탕·테두리 농도 */
+  --box-fill: 7%;
+  --box-line: 28%;
   /* 캔버스 바탕의 점, 미니맵 속 노드 */
   --canvas-dot: #334155;
   --minimap-node: #475569;
@@ -73,6 +76,7 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
   --color-red-950: #fde8e8;
   --color-amber-100: #6b4a00;
   --color-amber-300: #8a6100;
+  --color-amber-400: #a06a00;
   --color-amber-700: #e0b84a;
   --color-amber-950: #fff3cd;
 
@@ -85,6 +89,8 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
   --node-surface: #ffffff;
   --node-strong: #17201b;
   --node-text: #3a4840;
+  --box-fill: 13%;
+  --box-line: 45%;
   --canvas-dot: #cdd4c6;
   --minimap-node: #aab4a6;
 
@@ -109,7 +115,7 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
   --xy-background-color-default: transparent;
   --xy-background-pattern-dots-color-default: var(--canvas-dot);
   --xy-minimap-background-color-default: var(--color-slate-900);
-  --xy-minimap-mask-background-color-default: color-mix(in srgb, var(--color-slate-950) 70%, transparent);
+  --xy-minimap-mask-background-color-default: color-mix(in srgb, var(--color-slate-400) 28%, transparent);
   --xy-minimap-node-background-color-default: var(--minimap-node);
   --xy-controls-button-background-color-default: var(--color-slate-800);
   --xy-controls-button-background-color-hover-default: var(--color-slate-700);

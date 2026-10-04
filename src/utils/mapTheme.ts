@@ -117,8 +117,8 @@ export function nodeLook(theme: MapTheme, depth: number, branch: number, custom?
       plain: false,
       anchor: 'mid',
       style: {
-        background: `color-mix(in srgb, ${c} ${top ? 15 : 7}%, var(--node-surface))`,
-        border: `1px solid color-mix(in srgb, ${c} ${top ? 50 : 28}%, var(--node-surface))`,
+        background: `color-mix(in srgb, ${c} ${top ? '15%' : 'var(--box-fill)'}, var(--node-surface))`,
+        border: `1px solid color-mix(in srgb, ${c} ${top ? '50%' : 'var(--box-line)'}, var(--node-surface))`,
         color: top ? 'var(--node-strong)' : 'var(--node-text)',
         padding: top ? '6px 12px' : '4px 10px',
         borderRadius: top ? 8 : 6,

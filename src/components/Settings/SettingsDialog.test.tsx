@@ -87,6 +87,7 @@ describe('SettingsDialog', () => {
     expect(localStorage.getItem('color-mode')).toBe('light');
     expect(document.documentElement.dataset.theme).toBe('light');
     expect(screen.getByRole('button', { name: '라이트' })).toHaveAttribute('aria-pressed', 'true');
+    useMindMapStore.getState().setColorMode('system'); // 다음 테스트에 남기지 않는다
   });
 
   it('배경을 누르면 닫힌다', () => {

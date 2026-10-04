@@ -67,7 +67,7 @@ export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps
   return (
     <div
       className={`relative group flex items-center gap-1 select-none ${
-        look.plain ? 'hover:bg-slate-800/70' : ''
+        look.plain ? 'hover:bg-slate-700/60' : ''
       } ${selected ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-slate-950' : ''}`}
       style={look.style}
       onDoubleClick={() => !readOnly && setEditingNodeId(id)}
@@ -108,7 +108,7 @@ export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps
           // 노드 밖에 떠 있어(absolute) 숫자가 길어져도 노드 폭은 그대로다.
           // before:-inset-2 = 보이는 크기는 그대로 두고 클릭 판정만 사방 8px 넓힌다.
           // 펼친 가지의 −는 마우스를 올리거나 골랐을 때만 보인다 — 늘 보이면 맵이 버튼으로 뒤덮인다.
-          className={`absolute ${onLeft ? 'right-full mr-1' : 'left-full ml-1'} top-1/2 -translate-y-1/2 h-5 min-w-5 px-1 rounded-full bg-slate-700 border border-slate-500 text-[10px] leading-none flex items-center justify-center text-slate-200 hover:bg-indigo-600 hover:border-indigo-400 z-10 before:absolute before:-inset-2 before:content-[''] ${
+          className={`absolute ${onLeft ? 'right-full mr-1' : 'left-full ml-1'} top-1/2 -translate-y-1/2 h-5 min-w-5 px-1 rounded-full bg-slate-700 border border-slate-500 text-[10px] leading-none flex items-center justify-center text-slate-200 hover:bg-indigo-600 hover:border-indigo-400 hover:text-white z-10 before:absolute before:-inset-2 before:content-[''] ${
             data.collapsed || selected ? '' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'
           }`}
           onClick={(e) => { e.stopPropagation(); toggleCollapse(id); }}

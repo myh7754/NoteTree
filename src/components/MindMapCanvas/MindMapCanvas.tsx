@@ -23,6 +23,7 @@ import { ChordPanController } from './ChordPanController';
 import { EmptyMapHint } from './EmptyMapHint';
 import { edgePath } from '../../utils/mapTheme';
 import { directionOf } from '../../utils/layout';
+import { useResolvedTheme } from '../../utils/colorMode';
 
 const nodeTypes: NodeTypes = {
   textNode: TextNode,
@@ -87,8 +88,9 @@ function Flow() {
     focusRequest,
     fitRequest,
     readOnly,
-    colorMode,
   } = useMindMapStore();
+  // 앱이 정한 테마를 그대로 넘긴다 ('system'을 넘기면 React Flow가 따로 판단해 어긋날 수 있다)
+  const theme = useResolvedTheme();
   const layoutDirection = directionOf(mindMapData);
   const { getNodes, setCenter, getViewport, fitView } = useReactFlow();
   // ReactFlow 내부 스토어. 캔버스(pane) 실제 픽셀 크기를 읽는 데 쓴다.
@@ -400,7 +402,7 @@ function Flow() {
       onSelectionDrag={onSelectionDrag}
       onSelectionDragStop={onNodeDragStop}
       /* 확대 버튼·미니맵 색이 앱의 색 모드를 따르게 한다. 나머지 색은 index.css의 --xy-* 변수 */
-      colorMode={colorMode}
+      colorMode={theme}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       fitView
