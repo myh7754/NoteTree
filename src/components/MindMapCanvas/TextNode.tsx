@@ -33,11 +33,24 @@ export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps
   }, [data.label]);
 
   useEffect(() => {
-    if (editing) {
-      // 새로 만든 '새 노드'는 전체 선택해두면 바로 타이핑으로 덮어쓸 수 있다.
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
+    if (!editing) return;
+    // 새로 만든 노드는 React Flow가 크기를 잴 때까지 숨겨져 있어(visibility: hidden) 초점을
+    // 받지 못한다. 받을 때까지 다음 프레임에 다시 시도한다 — 안 그러면 친 글자가 단축키로 샌다.
+    let tries = 0;
+    let raf = 0;
+    const tryFocus = () => {
+      const el = inputRef.current;
+      if (!el) return;
+      el.focus();
+      if (document.activeElement === el) {
+        // 새로 만든 '새 노드'는 전체 선택해두면 바로 타이핑으로 덮어쓸 수 있다.
+        el.select();
+      } else if (tries++ < 30) {
+        raf = requestAnimationFrame(tryFocus);
+      }
+    };
+    tryFocus();
+    return () => cancelAnimationFrame(raf);
   }, [editing]);
 
   const handleBlur = () => {

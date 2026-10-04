@@ -19,6 +19,7 @@ const stop = (e: React.SyntheticEvent) => e.stopPropagation();
  */
 export function NodeActionBar({ id }: { id: string }) {
   const addChildNode = useMindMapStore((s) => s.addChildNode);
+  const setEditingNodeId = useMindMapStore((s) => s.setEditingNodeId);
   const openNoteDrawer = useMindMapStore((s) => s.openNoteDrawer);
   const deleteNode = useMindMapStore((s) => s.deleteNode);
   const isRoot = useMindMapStore((s) => s.mindMapData.rootId === id);
@@ -42,7 +43,8 @@ export function NodeActionBar({ id }: { id: string }) {
         onMouseDown={stop}
         onPointerDown={stop}
       >
-        <button className={btn} onClick={() => addChildNode(id, 'text')} title="글자 자식 추가">
+        {/* 단축키(Tab)와 같이, 만든 뒤 곧바로 이름을 칠 수 있게 편집을 켠다 */}
+        <button className={btn} onClick={() => setEditingNodeId(addChildNode(id, 'text'))} title="글자 자식 추가">
           <Icon name="plus" size={14} />
           자식
           <kbd className="rounded border border-slate-600 bg-slate-900 px-1 font-mono text-[10px] text-slate-400">

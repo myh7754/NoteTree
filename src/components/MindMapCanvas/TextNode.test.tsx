@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 
 // 연결점과 떠 있는 도구는 React Flow 캔버스 안에서만 동작한다. 여기서는 노드 자체만 본다.
@@ -78,5 +78,21 @@ describe('TextNode 노드 도구', () => {
     store().setEditingNodeId(a);
     renderNode(a, true);
     expect(screen.queryByTestId('node-toolbar')).not.toBeInTheDocument();
+  });
+});
+
+describe('TextNode 이름 입력', () => {
+  // 새로 만든 노드는 React Flow가 크기를 잴 때까지 숨겨져 있어(visibility: hidden) 초점을 받지 못한다.
+  it('처음에 초점을 못 받으면 받을 때까지 다시 시도한다 — 안 그러면 새 노드에 친 글자가 단축키로 샌다', async () => {
+    const real = HTMLInputElement.prototype.focus;
+    let calls = 0;
+    const spy = vi.spyOn(HTMLInputElement.prototype, 'focus').mockImplementation(function (this: HTMLInputElement) {
+      if (++calls > 2) real.call(this); // 처음 두 번은 숨겨진 상태를 흉내 낸다
+    });
+    store().setEditingNodeId(a);
+    renderNode(a, true);
+
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('textbox')));
+    spy.mockRestore();
   });
 });

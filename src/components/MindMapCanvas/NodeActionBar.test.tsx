@@ -29,6 +29,8 @@ describe('NodeActionBar', () => {
     const kids = store().mindMapData.children[a];
     expect(kids).toHaveLength(1);
     expect(store().mindMapData.nodes[kids[0]].type).toBe('text');
+    // 단축키(Tab)로 만들 때와 같이 바로 이름을 칠 수 있어야 한다
+    expect(store().editingNodeId).toBe(kids[0]);
   });
 
   it('표 추가는 그 노드 밑에 표 노드를 만든다', () => {

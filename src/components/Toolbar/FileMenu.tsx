@@ -109,7 +109,8 @@ export function FileMenu() {
 function Item({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
-      className="w-full px-3 py-1.5 text-left text-xs text-slate-200 hover:bg-slate-800"
+      // block: 툴바의 whitespace-nowrap을 물려받아, 인라인이면 항목들이 한 줄로 흘러 넘친다
+      className="block w-full px-3 py-1.5 text-left text-xs text-slate-200 hover:bg-slate-800"
       onClick={onClick}
     >
       {label}
