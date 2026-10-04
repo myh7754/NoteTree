@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoteTree 로고 후보</title>
+<style>
+  :root { --bg: #f3f4f8; --fg: #171a26; --muted: #5b6275; --line: #d9dce6; --card: #ffffff; --accent: #4f46e5; --on-accent: #ffffff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0e1018; --fg: #e8eaf2; --muted: #9aa1b5; --line: #2a2f42; --card: #171a26; --accent: #a5a0ff; --on-accent: #0e1018; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif; padding: 32px 16px 64px; }
+  .page { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+  h1 { margin: 0; font-size: 26px; line-height: 1.3; }
+  p { margin: 0; color: var(--muted); max-width: 70ch; }
+  .bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 12px 26px; align-items: center; padding: 12px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+  .group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .group > span { font-size: 13px; color: var(--muted); margin-right: 4px; }
+  label.pick { font-size: 14px; display: inline-flex; align-items: center; cursor: pointer; padding: 3px 9px; border-radius: 6px; }
+  label.pick:has(input:checked) { background: var(--accent); color: var(--on-accent); }
+  label.pick input { position: absolute; opacity: 0; pointer-events: none; }
+  label.pick:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  label.color { font-size: 13px; display: inline-flex; gap: 6px; align-items: center; }
+  input[type=color] { width: 34px; height: 28px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; }
+  button.preset { font: inherit; font-size: 13px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; padding: 3px 9px 3px 5px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--fg); }
+  button.preset:hover { border-color: var(--accent); }
+  button.preset i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--line); display: block; }
+  #status { font-size: 13px; color: var(--muted); flex-basis: 100%; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  button.logo { all: unset; box-sizing: border-box; cursor: pointer; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 10px 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  button.logo:hover { border-color: var(--accent); }
+  button.logo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.logo svg { width: 96px; height: 96px; border-radius: 22px; box-shadow: 0 0 0 1px var(--line); display: block; }
+  .name { font-size: 13px; text-align: center; }
+  .grid h2 { grid-column: 1 / -1; margin: 18px 0 0; font-size: 17px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>NoteTree 아이콘 후보 200개</h1>
+  <p>모양이 서로 다른 아이콘 200개를 열 묶음으로 나눴습니다. 색은 위쪽에서 따로 고르면 전체에 한꺼번에 적용됩니다. 마음에 드는 그림을 누르면 지금 보이는 색 그대로 내려받습니다. 내려받는 그림은 모서리가 각진 정사각형입니다.</p>
+
+  <div class="bar">
+    <div class="group" id="presets"><span>색 묶음</span></div>
+    <div class="group">
+      <span>직접 고르기</span>
+      <label class="color">배경 <input type="color" id="c-bg" value="#4f46e5"></label>
+      <label class="color">그림 <input type="color" id="c-fg" value="#ffffff"></label>
+      <label class="color">포인트 <input type="color" id="c-ac" value="#c7d2fe"></label>
+    </div>
+    <div class="group">
+      <span>크기</span>
+      <label class="pick"><input type="radio" name="size" value="128" checked>128px</label>
+      <label class="pick"><input type="radio" name="size" value="256">256px</label>
+      <label class="pick"><input type="radio" name="size" value="512">512px</label>
+    </div>
+    <div class="group">
+      <span>형식</span>
+      <label class="pick"><input type="radio" name="fmt" value="png" checked>PNG</label>
+      <label class="pick"><input type="radio" name="fmt" value="jpeg">JPG</label>
+    </div>
+    <span id="status" role="status">128px PNG는 보통 3KB 안팎입니다 (제한 250KB)</span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+(function () {
+  var PRESETS = [
+    { name: '인디고', bg: '#4f46e5', fg: '#ffffff', ac: '#c7d2fe' },
+    { name: '다크',   bg: '#0f172a', fg: '#e2e8f0', ac: '#818cf8' },
+    { name: '그린',   bg: '#166534', fg: '#ffffff', ac: '#bbf7d0' },
+    { name: '화이트', bg: '#ffffff', fg: '#312e81', ac: '#6366f1' },
+    { name: '코랄',   bg: '#f26b4e', fg: '#ffffff', ac: '#ffe1d6' },
+    { name: '검정',   bg: '#111111', fg: '#ffffff', ac: '#fbbf24' },
+    { name: '하늘',   bg: '#e0f2fe', fg: '#0c4a6e', ac: '#0ea5e9' }
+  ];
+
+  // 모양은 전부 128×128 좌표에 그린다. 글꼴을 쓰지 않아 어느 컴퓨터에서든 똑같이 나온다.
+  var line = function (d, c, w) { return '<path d="' + d + '" stroke="' + c + '" stroke-width="' + w + '" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'; };
+  var fill = function (d, c) { return '<path d="' + d + '" fill="' + c + '"/>'; };
+  var dot = function (x, y, r, c) { return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + c + '"/>'; };
+  var box = function (x, y, w, h, r, c) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + r + '" fill="' + c + '"/>'; };
+
+  // ── 그리기 도구 (전부 128×128 좌표) ──
+  var ring = function (x, y, r, c, w) { return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="none" stroke="' + c + '" stroke-width="' + w + '"/>'; };
+  var fillA = function (d, c, o) { return '<path d="' + d + '" fill="' + c + '" fill-opacity="' + o + '"/>'; };
+  var outl = function (x, y, w, h, r, c, sw) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + r + '" fill="none" stroke="' + c + '" stroke-width="' + sw + '"/>'; };
+  var strokeP = function (d, c, w) { return '<path d="' + d + '" fill="none" stroke="' + c + '" stroke-width="' + w + '" stroke-linejoin="round"/>'; };
+  // 잎: (x,y)가 밑동, 위로 len만큼, 반폭 wid, rot도 회전
+  var lf = function (x, y, rot, len, wid, c) {
+    return '<path transform="translate(' + x + ' ' + y + ') rotate(' + rot + ')" d="M0 0 C' + (-wid) + ' ' + (-len * 0.3) + ' ' + (-wid) + ' ' + (-len * 0.75) + ' 0 ' + (-len) +
+      ' C' + wid + ' ' + (-len * 0.75) + ' ' + wid + ' ' + (-len * 0.3) + ' 0 0 Z" fill="' + c + '"/>';
+  };
+  // 작은 나무 글리프: 밑동 (cx,by), 크기 s
+  var twig = function (cx, by, s, c, w, dc) {
+    var t = line('M' + cx + ' ' + by + ' V' + (by - 44 * s) + ' M' + cx + ' ' + (by - 16 * s) + ' L' + (cx - 18 * s) + ' ' + (by - 34 * s) + ' M' + cx + ' ' + (by - 26 * s) + ' L' + (cx + 18 * s) + ' ' + (by - 44 * s), c, w);
+    if (dc) t += dot(cx, by - 48 * s, 6 * s, dc) + dot(cx - 20 * s, by - 36 * s, 6 * s, dc) + dot(cx + 20 * s, by - 46 * s, 6 * s, dc);
+    return t;
+  };
+  var polar = function (cx, cy, r, deg) { var a = deg * Math.PI / 180; return [Math.round((cx + r * Math.cos(a)) * 10) / 10, Math.round((cy + r * Math.sin(a)) * 10) / 10]; };
+  var hexPath = function (cx, cy, r) { var d = ''; for (var i = 0; i < 6; i++) { var q = polar(cx, cy, r, 60 * i - 90); d += (i ? 'L' : 'M') + q[0] + ' ' + q[1] + ' '; } return d + 'Z'; };
+
+  var MARKS = [];
+  var group = '';
+  var add = function (name, fn) { MARKS.push([name, fn, group]); };
+
+  // ════ 1. 나무 ════
+  group = '나무';
+  var CROWNS = [
+    ['동그란', function (c) { return dot(64, 46, 31, c); }, 76],
+    ['구름', function (c) { return dot(64, 36, 23, c) + dot(43, 54, 19, c) + dot(85, 54, 19, c); }, 70],
+    ['세모', function (c) { return fill('M64 8 L102 76 H26 Z', c); }, 76],
+    ['전나무', function (c) { return fill('M64 8 L94 48 H34 Z', c) + fill('M64 34 L106 86 H22 Z', c); }, 86],
+    ['네모', function (c) { return box(30, 12, 68, 66, 15, c); }, 78],
+    ['마름모', function (c) { return fill('M64 6 L104 46 L64 86 L24 46 Z', c); }, 80],
+    ['우산', function (c) { return fill('M16 70 C16 8 112 8 112 70 Z', c); }, 70],
+    ['육각', function (c) { return fill(hexPath(64, 46, 40), c); }, 82],
+    ['물방울', function (c) { return fill('M64 4 C84 28 98 42 98 56 A34 34 0 0 1 30 56 C30 42 44 28 64 4 Z', c); }, 88],
+    ['송이', function (c) { return dot(64, 24, 16, c) + dot(41, 42, 16, c) + dot(87, 42, 16, c) + dot(50, 66, 16, c) + dot(78, 66, 16, c); }, 78]
+  ];
+  CROWNS.forEach(function (cr) {
+    add(cr[0] + ' 나무', function (p) { return line('M64 116 V' + (cr[2] - 6), p.ac, 10) + cr[1](p.fg); });
+    add(cr[0] + ' 나무 · 가지', function (p) { return line('M64 116 V' + (cr[2] - 6), p.fg, 10) + cr[1](p.fg) + line('M64 ' + (cr[2] - 2) + ' V36 M64 66 L49 51 M64 56 L79 41', p.bg, 5); });
+  });
+
+  // ════ 2. 잎 ════
+  group = '잎';
+  var LEAVES = [
+    ['타원', 'M64 12 C106 32 108 86 64 116 C20 86 22 32 64 12 Z'],
+    ['둥근', 'M64 112 C22 112 10 70 26 42 C40 18 88 18 102 42 C118 70 106 112 64 112 Z'],
+    ['하트', 'M64 112 C18 82 10 48 28 30 C42 16 60 24 64 40 C68 24 86 16 100 30 C118 48 110 82 64 112 Z'],
+    ['단풍', 'M64 8 L75 38 L104 26 L91 56 L118 70 L86 78 L90 108 L64 92 L38 108 L42 78 L10 70 L37 56 L24 26 L53 38 Z'],
+    ['버들', 'M64 6 C86 40 86 88 64 122 C42 88 42 40 64 6 Z'],
+    ['은행', 'M64 96 C36 90 14 68 12 38 C30 22 50 20 60 32 L64 50 L68 32 C78 20 98 22 116 38 C114 68 92 90 64 96 Z']
+  ];
+  LEAVES.forEach(function (lv) {
+    add(lv[0] + ' 잎', function (p) { return fill(lv[1], p.fg) + line('M64 104 V40', p.bg, 5); });
+    add(lv[0] + ' 잎 · 잎맥', function (p) { return fill(lv[1], p.fg) + line('M64 104 V40 M64 86 L82 68 M64 72 L46 54 M64 58 L78 44', p.bg, 4.5); });
+    add(lv[0] + ' 잎 · 지도', function (p) { return fill(lv[1], p.fg) + line('M64 104 V40 M64 88 H80 V76 M64 72 H48 V60 M64 56 H76 V48', p.bg, 4.5) + dot(80, 74, 4, p.bg) + dot(48, 58, 4, p.bg) + dot(76, 46, 4, p.bg); });
+  });
+
+  // ════ 3. 맵 구조 ════
+  group = '맵 구조';
+  [3, 4, 5, 6, 8].forEach(function (n) {
+    add('방사 ' + n + '갈래', function (p) {
+      var s = '';
+      for (var i = 0; i < n; i++) { var q = polar(64, 64, 42, 360 / n * i - 90); s += line('M64 64 L' + q[0] + ' ' + q[1], p.ac, 5) + dot(q[0], q[1], n > 6 ? 7 : 9, p.fg); }
+      return s + dot(64, 64, 15, p.fg);
+    });
+  });
+  [4, 6].forEach(function (n) {
+    add('상자 중심 ' + n + '갈래', function (p) {
+      var s = '';
+      for (var i = 0; i < n; i++) { var q = polar(64, 64, 46, 360 / n * i - (n === 4 ? 45 : 90)); s += line('M64 64 L' + q[0] + ' ' + q[1], p.ac, 5) + dot(q[0], q[1], 8, p.fg); }
+      return s + box(44, 50, 40, 28, 9, p.fg);
+    });
+  });
+  [2, 3, 4].forEach(function (k) {
+    add('오른쪽 ' + k + '갈래', function (p) {
+      var s = '';
+      for (var i = 0; i < k; i++) { var y = 26 + 76 / (k - 1) * i; s += line('M42 64 H62 V' + y + ' H90', p.ac, 6) + dot(96, y, k === 4 ? 7 : 9, p.fg); }
+      return s + dot(30, 64, 14, p.fg);
+    });
+  });
+  add('두 단계 가지', function (p) { return line('M28 64 H40 V40 H52 M40 64 V88 H52 M64 40 H82 V24 H98 M82 40 V56 H98 M64 88 H82 V72 H98 M82 88 V104 H98', p.ac, 5) + dot(20, 64, 11, p.fg) + dot(58, 40, 8, p.fg) + dot(58, 88, 8, p.fg) + dot(104, 24, 6, p.fg) + dot(104, 56, 6, p.fg) + dot(104, 72, 6, p.fg) + dot(104, 104, 6, p.fg); });
+  [2, 3].forEach(function (k) {
+    add('좌우 ' + k + '갈래', function (p) {
+      var s = '';
+      for (var i = 0; i < k; i++) { var y = 30 + 68 / (k - 1) * i; s += line('M80 64 H92 V' + y + ' H102 M48 64 H36 V' + y + ' H26', p.ac, 5.5) + dot(106, y, 7.5, p.fg) + dot(22, y, 7.5, p.fg); }
+      return s + box(46, 50, 36, 28, 9, p.fg);
+    });
+  });
+  [2, 3].forEach(function (k) {
+    add('위에서 아래 ' + k + '갈래', function (p) {
+      var s = line('M64 40 V58', p.ac, 6), xs = k === 2 ? [38, 90] : [26, 64, 102];
+      s += line('M' + xs[0] + ' 58 H' + xs[k - 1], p.ac, 6);
+      xs.forEach(function (x) { s += line('M' + x + ' 58 V76', p.ac, 6) + box(x - 13, 76, 26, 22, 6, p.fg); });
+      return s + dot(64, 30, 13, p.fg);
+    });
+  });
+  add('세 층 조직도', function (p) { return line('M64 30 V46 M36 46 H92 M36 46 V58 M92 46 V58 M36 70 V84 M22 84 H50 M22 84 V94 M50 84 V94 M92 70 V84 M78 84 H106 M78 84 V94 M106 84 V94', p.ac, 5) + dot(64, 22, 11, p.fg) + dot(36, 64, 9, p.fg) + dot(92, 64, 9, p.fg) + dot(22, 100, 7, p.fg) + dot(50, 100, 7, p.fg) + dot(78, 100, 7, p.fg) + dot(106, 100, 7, p.fg); });
+  add('생선뼈', function (p) { return line('M38 64 L26 34 M62 64 L50 34 M86 64 L74 34 M38 64 L26 94 M62 64 L50 94 M86 64 L74 94', p.ac, 5.5) + line('M14 64 H96', p.fg, 8) + fill('M92 48 L116 64 L92 80 Z', p.fg); });
+  add('위로 뻗는 가지', function (p) { return line('M64 92 V70 H30 V46 M64 70 V40 M64 70 H98 V46', p.ac, 6) + dot(64, 102, 13, p.fg) + dot(30, 38, 9, p.fg) + dot(64, 32, 9, p.fg) + dot(98, 38, 9, p.fg); });
+  add('곡선 가지', function (p) { return line('M36 64 C64 64 60 30 94 30 M36 64 H94 M36 64 C64 64 60 98 94 98', p.ac, 6) + dot(28, 64, 14, p.fg) + dot(98, 30, 9, p.fg) + dot(98, 64, 9, p.fg) + dot(98, 98, 9, p.fg); });
+  add('곡선 좌우 가지', function (p) { return line('M64 64 C84 64 80 34 104 34 M64 64 C84 64 80 94 104 94 M64 64 C44 64 48 34 24 34 M64 64 C44 64 48 94 24 94', p.ac, 6) + dot(64, 64, 16, p.fg) + dot(106, 34, 8, p.fg) + dot(106, 94, 8, p.fg) + dot(22, 34, 8, p.fg) + dot(22, 94, 8, p.fg); });
+
+  // ════ 4. 끝없이 갈라지는 나무 ════
+  group = '갈라지는 나무';
+  var fractal = function (p, spread, depth, ratio, lean, kids) {
+    var s = '', tips = '';
+    (function grow(x, y, ang, len, d) {
+      var x2 = x + len * Math.sin(ang), y2 = y - len * Math.cos(ang);
+      s += line('M' + x.toFixed(1) + ' ' + y.toFixed(1) + ' L' + x2.toFixed(1) + ' ' + y2.toFixed(1), p.fg, Math.max(2, 9 - d * (7 / depth)));
+      if (d >= depth) { tips += dot(x2.toFixed(1), y2.toFixed(1), depth > 4 ? 2.2 : 3.4, p.ac); return; }
+      for (var i = 0; i < kids; i++) grow(x2, y2, ang + lean + spread * (kids === 1 ? 0 : (i / (kids - 1)) * 2 - 1), len * ratio, d + 1);
+    })(64, 116, 0, kids === 3 ? 38 : 34, 0);
+    return s + tips;
+  };
+  [['좁게', 0.35, 4, 0.74, 0, 2], ['보통', 0.5, 4, 0.72, 0, 2], ['넓게', 0.75, 4, 0.7, 0, 2], ['굵게', 0.5, 3, 0.72, 0, 2], ['활짝', 0.95, 3, 0.72, 0, 2],
+    ['촘촘하게', 0.45, 5, 0.72, 0, 2], ['오른쪽으로 기운', 0.5, 4, 0.72, 0.16, 2], ['왼쪽으로 기운', 0.38, 4, 0.74, -0.18, 2], ['세 갈래', 0.7, 3, 0.62, 0, 3], ['직각', Math.PI / 2, 5, 0.68, 0, 2]
+  ].forEach(function (f) { add(f[0] + ' 갈라지는 나무', function (p) { return fractal(p, f[1], f[2], f[3], f[4], f[5]); }); });
+
+  // ════ 5. 자람 ════
+  group = '자람';
+  add('나이테', function (p) { return ring(64, 64, 46, p.fg, 7) + ring(64, 64, 31, p.fg, 6) + ring(64, 64, 17, p.fg, 5) + dot(64, 64, 6, p.ac); });
+  add('치우친 나이테', function (p) { return ring(64, 64, 46, p.fg, 7) + ring(60, 67, 31, p.fg, 6) + ring(56, 70, 17, p.fg, 5) + dot(54, 72, 6, p.ac); });
+  add('나선', function (p) { var d = ''; for (var i = 0; i <= 120; i++) { var t = i / 120 * Math.PI * 5.5, r = 4 + 42 * i / 120; d += (i ? ' L' : 'M') + (64 + r * Math.cos(t)).toFixed(1) + ' ' + (64 + r * Math.sin(t)).toFixed(1); } return line(d, p.fg, 8) + dot(64, 64, 6, p.ac); });
+  add('네모 나선', function (p) { return line('M64 64 H76 V52 H52 V76 H88 V40 H40 V88 H100 V28 H28 V100 H104', p.fg, 7) + dot(64, 64, 6, p.ac); });
+  add('겹친 네모', function (p) { return outl(18, 18, 92, 92, 16, p.fg, 7) + outl(36, 36, 56, 56, 11, p.fg, 6) + box(53, 53, 22, 22, 6, p.ac); });
+  add('무한', function (p) { return line('M64 64 C52 42 22 42 22 64 C22 86 52 86 64 64 C76 42 106 42 106 64 C106 86 76 86 64 64 Z', p.fg, 11); });
+  add('무한 잎', function (p) { return line('M64 70 C52 48 20 48 20 70 C20 92 52 92 64 70 C76 48 108 48 108 70 C108 92 76 92 64 70 Z', p.fg, 10) + lf(98, 48, 40, 38, 13, p.ac); });
+  add('무한 노드', function (p) { return line('M64 64 C52 42 22 42 22 64 C22 86 52 86 64 64 C76 42 106 42 106 64 C106 86 76 86 64 64 Z', p.ac, 6) + dot(64, 64, 11, p.fg) + dot(22, 64, 10, p.fg) + dot(106, 64, 10, p.fg); });
+  var sprout = function (p, by, three) { return line('M64 ' + by + ' V' + (by - 44), p.ac, 7) + lf(64, by - 26, -52, 38, 15, p.fg) + lf(64, by - 36, 48, 40, 15, p.fg) + (three ? lf(64, by - 40, 0, 34, 12, p.fg) : ''); };
+  add('새싹', function (p) { return sprout(p, 112, false); });
+  add('세 잎 새싹', function (p) { return sprout(p, 114, true); });
+  add('화분 새싹', function (p) { return sprout(p, 86, false) + fill('M38 84 H90 L84 114 H44 Z', p.fg); });
+  add('씨앗 새싹', function (p) { return sprout(p, 94, false) + '<ellipse cx="64" cy="100" rx="24" ry="14" fill="' + p.fg + '"/>'; });
+  add('노드 새싹', function (p) { return sprout(p, 96, false) + dot(64, 102, 14, p.fg); });
+  add('노트 새싹', function (p) { return sprout(p, 80, false) + box(34, 78, 60, 38, 10, p.fg) + line('M46 92 H82 M46 104 H68', p.bg, 5); });
+  add('밑줄 새싹', function (p) { return sprout(p, 102, false) + line('M22 104 H106', p.fg, 10); });
+  add('커서 새싹', function (p) { return line('M64 108 V54 M48 108 H80', p.fg, 9) + lf(64, 58, -48, 42, 16, p.ac) + lf(64, 52, 46, 44, 16, p.ac); });
+  add('책 새싹', function (p) { return fill('M64 112 C40 100 24 100 14 104 V70 C24 66 40 66 64 78 C88 66 104 66 114 70 V104 C104 100 88 100 64 112 Z', p.fg) + line('M64 80 V110', p.bg, 4) + line('M64 78 V44', p.ac, 6) + lf(64, 56, -50, 34, 13, p.ac) + lf(64, 48, 46, 36, 13, p.ac); });
+  add('두 잎 원', function (p) { return lf(64, 110, 0, 92, 34, p.fg) + line('M64 100 V30', p.bg, 4) + ring(64, 64, 52, p.ac, 5); });
+  add('세 잎 바람개비', function (p) { return lf(64, 64, 0, 50, 20, p.fg) + lf(64, 64, 120, 50, 20, p.fg) + lf(64, 64, 240, 50, 20, p.fg) + dot(64, 64, 8, p.ac); });
+  add('네 잎 바람개비', function (p) { return lf(64, 64, 45, 50, 18, p.fg) + lf(64, 64, 135, 50, 18, p.fg) + lf(64, 64, 225, 50, 18, p.fg) + lf(64, 64, 315, 50, 18, p.fg) + dot(64, 64, 8, p.ac); });
+  add('잎 화환', function (p) { var s = ''; for (var i = 0; i < 8; i++) { var q = polar(64, 64, 34, 45 * i); s += lf(q[0], q[1], 45 * i + 150, 26, 10, p.fg); } return s + dot(64, 64, 9, p.ac); });
+  add('계단 새싹', function (p) { return box(18, 92, 30, 22, 4, p.fg) + box(48, 72, 30, 42, 4, p.fg) + box(78, 52, 30, 62, 4, p.fg) + line('M93 52 V30', p.ac, 6) + lf(93, 40, -50, 24, 10, p.ac) + lf(93, 34, 46, 26, 10, p.ac); });
+
+  // ════ 6. 글자 ════
+  group = '글자';
+  var NP = 'M40 94 V36 L88 94 V36';
+  add('N', function (p) { return line(NP, p.fg, 15); });
+  add('N 노드', function (p) { return line(NP, p.ac, 6) + dot(40, 94, 10, p.fg) + dot(40, 36, 10, p.fg) + dot(88, 94, 10, p.fg) + dot(88, 36, 10, p.fg); });
+  add('N 잎', function (p) { return line('M38 98 V42 L88 98 V58', p.fg, 13) + lf(88, 60, 8, 48, 17, p.ac); });
+  add('N 직각', function (p) { return line('M34 98 V44 Q34 34 44 34 H52 Q62 34 62 44 V84 Q62 94 72 94 H84 Q94 94 94 84 V30', p.fg, 9) + dot(34, 98, 10, p.ac) + dot(94, 30, 10, p.ac); });
+  add('원 속 N', function (p) { return ring(64, 64, 48, p.fg, 8) + line('M48 84 V44 L80 84 V44', p.ac, 9); });
+  add('육각 속 N', function (p) { return strokeP(hexPath(64, 64, 52), p.fg, 8) + line('M48 84 V46 L80 84 V46', p.ac, 9); });
+  add('네모 속 N', function (p) { return outl(16, 16, 96, 96, 22, p.fg, 8) + line('M46 86 V42 L82 86 V42', p.fg, 10); });
+  add('N 도장', function (p) { return box(16, 16, 96, 96, 22, p.fg) + line('M46 86 V42 L82 86 V42', p.bg, 11); });
+  add('N 세 막대', function (p) { return line('M40 94 V36 M88 94 V36', p.fg, 14) + line('M40 36 L88 94', p.ac, 14); });
+  add('N 점선', function (p) { var s = '', pts = [[40, 94], [40, 75], [40, 55], [40, 36], [52, 50], [64, 65], [76, 80], [88, 94], [88, 75], [88, 55], [88, 36]]; pts.forEach(function (q, i) { s += dot(q[0], q[1], 7, i === 0 || i === 10 ? p.ac : p.fg); }); return s; });
+  add('N 화살표', function (p) { return line('M40 96 V40 L88 96 V30', p.fg, 12) + line('M72 44 L88 26 L104 44', p.ac, 10); });
+  add('n 잎', function (p) { return line('M40 100 V56 M40 72 C40 46 88 42 88 72 V100', p.fg, 14) + lf(40, 54, 0, 46, 17, p.ac); });
+  add('n 점', function (p) { return line('M40 100 V60 M40 76 C40 50 88 46 88 76 V100', p.fg, 14) + dot(40, 34, 10, p.ac); });
+  add('원 속 n', function (p) { return dot(64, 64, 50, p.fg) + line('M46 88 V52 M46 64 C46 44 82 42 82 64 V88', p.bg, 11); });
+  add('T 우산', function (p) { return line('M64 52 V110', p.fg, 14) + fill('M16 56 C16 14 112 14 112 56 Z', p.fg) + dot(42, 70, 7, p.ac) + dot(86, 70, 7, p.ac); });
+  add('T 노드', function (p) { return line('M32 40 H96 M64 40 V100', p.fg, 13) + dot(32, 40, 11, p.ac) + dot(96, 40, 11, p.ac) + dot(64, 102, 11, p.ac); });
+  add('T 잎', function (p) { return line('M30 52 H98 M64 52 V108', p.fg, 14) + lf(64, 48, 0, 40, 16, p.ac); });
+  add('t 잎', function (p) { return line('M58 24 V86 Q58 102 76 102 H86', p.fg, 14) + lf(50, 54, 90, 44, 14, p.ac); });
+  add('NT', function (p) { return line('M22 90 V38 L54 90 V38', p.fg, 11) + line('M68 38 H106 M87 38 V90', p.ac, 11); });
+  add('nt', function (p) { return line('M22 94 V58 M22 72 C22 52 56 50 56 72 V94', p.fg, 11) + line('M82 34 V82 Q82 94 96 94 H102 M68 56 H100', p.ac, 11); });
+
+  // ════ 7. 노트·책·글 ════
+  group = '노트와 글';
+  var PAGE = 'M30 14 H98 V114 H30 Z';
+  add('노트', function (p) { return box(28, 14, 72, 100, 10, p.fg) + line('M42 40 H86 M42 58 H86 M42 76 H86 M42 94 H68', p.bg, 6); });
+  add('접힌 모서리 잎', function (p) { return fill('M30 18 H70 L98 46 V112 H30 Z', p.fg) + line('M44 68 H84 M44 83 H84 M44 98 H68', p.bg, 6) + lf(72, 44, 42, 46, 17, p.ac); });
+  add('노트 속 나무', function (p) { return box(28, 14, 72, 100, 10, p.fg) + twig(64, 98, 1.25, p.bg, 6, null); });
+  add('노트 속 노드', function (p) { return box(28, 14, 72, 100, 10, p.fg) + line('M64 40 L46 84 H82 Z', p.bg, 5) + dot(64, 40, 9, p.bg) + dot(46, 84, 9, p.bg) + dot(82, 84, 9, p.bg); });
+  add('뿌리 내린 노트', function (p) { return line('M64 70 V112 M64 86 L42 108 M64 86 L86 108', p.ac, 7) + box(32, 14, 64, 58, 12, p.fg) + line('M46 32 H82 M46 44 H82 M46 56 H68', p.bg, 6); });
+  add('팻말 노트', function (p) { return line('M64 114 V80', p.ac, 10) + box(30, 16, 68, 64, 14, p.fg) + line('M44 36 H84 M44 50 H84 M44 64 H70', p.bg, 6); });
+  add('붙임 쪽지', function (p) { return fill('M22 22 H106 V78 L78 106 H22 Z', p.fg) + fill('M78 106 V78 H106 Z', p.ac) + line('M38 44 H88 M38 62 H74', p.bg, 6); });
+  add('겹친 노트 2장', function (p) { return box(40, 14, 66, 84, 10, p.ac) + box(22, 30, 66, 84, 10, p.fg) + line('M36 54 H74 M36 70 H74 M36 86 H60', p.bg, 6); });
+  add('겹친 노트 3장', function (p) { return fillA('M52 12 H112 V84 H52 Z', p.fg, 0.4) + fillA('M36 26 H96 V98 H36 Z', p.fg, 0.7) + box(18, 40, 62, 74, 8, p.fg) + line('M30 62 H66 M30 78 H66 M30 94 H52', p.bg, 5); });
+  add('펼친 책', function (p) { return fill('M64 104 C42 92 26 92 12 96 V32 C26 28 42 28 64 40 C86 28 102 28 116 32 V96 C102 92 86 92 64 104 Z', p.fg) + line('M64 42 V100', p.bg, 5); });
+  add('책갈피 책', function (p) { return box(26, 14, 76, 100, 10, p.fg) + line('M40 14 V114', p.bg, 4) + fill('M70 14 H90 V58 L80 48 L70 58 Z', p.ac); });
+  add('나무 표지 책', function (p) { return box(26, 14, 76, 100, 10, p.fg) + line('M40 14 V114', p.bg, 4) + twig(72, 92, 1.05, p.bg, 5, null); });
+  add('책갈피 가지', function (p) { return fill('M34 12 H94 V116 L64 94 L34 116 Z', p.fg) + twig(64, 82, 1, p.bg, 6, p.ac); });
+  add('카드 부채', function (p) { var card = function (rot, c) { return '<rect x="46" y="26" width="36" height="78" rx="9" fill="' + c + '" transform="rotate(' + rot + ' 64 112)"/>'; }; return card(-30, p.ac) + card(30, p.ac) + card(0, p.fg) + line('M56 46 H72 M56 60 H72', p.bg, 5); });
+  add('클립보드 나무', function (p) { return box(24, 22, 80, 94, 12, p.fg) + box(46, 12, 36, 22, 7, p.ac) + twig(64, 102, 1.15, p.bg, 6, null); });
+  add('스프링 노트 잎', function (p) { return box(34, 16, 72, 98, 10, p.fg) + ring(34, 36, 7, p.ac, 5) + ring(34, 64, 7, p.ac, 5) + ring(34, 92, 7, p.ac, 5) + lf(72, 96, 20, 58, 20, p.bg); });
+  add('두루마리', function (p) { return box(26, 26, 76, 76, 4, p.fg) + line('M18 26 H110 M18 102 H110', p.ac, 12) + line('M42 50 H86 M42 64 H86 M42 78 H70', p.bg, 5); });
+  add('연필 나무', function (p) { return dot(64, 38, 25, p.fg) + dot(42, 52, 17, p.fg) + dot(86, 52, 17, p.fg) + box(56, 56, 16, 44, 0, p.ac) + fill('M56 100 L64 118 L72 100 Z', p.fg) + box(56, 70, 16, 5, 0, p.bg); });
+  add('연필 잎', function (p) { return line('M38 90 L84 44', p.fg, 18) + fill('M20 108 L28 82 L46 100 Z', p.ac) + lf(88, 40, 45, 36, 14, p.ac); });
+  add('펜촉 나무', function (p) { return fill('M64 114 L34 62 L46 14 H82 L94 62 Z', p.fg) + line('M64 100 V58', p.bg, 5) + dot(64, 50, 8, p.bg) + line('M46 26 H82', p.ac, 6); });
+  add('따옴표 잎', function (p) { return lf(34, 92, 20, 62, 22, p.fg) + lf(78, 92, 20, 62, 22, p.fg); });
+  add('체크 잎', function (p) { return outl(18, 22, 84, 84, 16, p.fg, 8) + line('M38 64 L56 82 L84 48', p.ac, 10) + lf(84, 50, 38, 40, 14, p.ac); });
+  add('# 노드', function (p) { return line('M48 22 V106 M80 22 V106 M22 48 H106 M22 80 H106', p.fg, 8) + dot(48, 48, 9, p.ac) + dot(80, 48, 9, p.ac) + dot(48, 80, 9, p.ac) + dot(80, 80, 9, p.ac); });
+  add('위키링크', function (p) { return line('M32 28 H20 V100 H32 M52 28 H40 V100 H52 M96 28 H108 V100 H96 M76 28 H88 V100 H76', p.fg, 8) + dot(64, 64, 8, p.ac); });
+  add('잎 목록', function (p) { return lf(22, 42, 90, 20, 9, p.ac) + lf(22, 70, 90, 20, 9, p.ac) + lf(22, 98, 90, 20, 9, p.ac) + line('M56 36 H108 M56 64 H108 M56 92 H90', p.fg, 10); });
+  add('Tab 키', function (p) { return line('M20 64 H84 M66 42 L88 64 L66 86', p.fg, 11) + line('M106 34 V94', p.ac, 11); });
+  add('Enter 키', function (p) { return line('M98 28 V72 H34 M52 54 L32 72 L52 90', p.fg, 11) + dot(98, 28, 9, p.ac); });
+  add('말풍선 나무', function (p) { return fill('M24 16 H104 Q114 16 114 26 V80 Q114 90 104 90 H62 L40 112 V90 H24 Q14 90 14 80 V26 Q14 16 24 16 Z', p.fg) + twig(64, 80, 1.05, p.bg, 5.5, null); });
+  add('전구 나무', function (p) { return dot(64, 52, 38, p.fg) + box(48, 84, 32, 14, 3, p.fg) + line('M50 108 H78', p.ac, 8) + twig(64, 82, 0.95, p.bg, 5, null); });
+  add('폴더 잎', function (p) { return fill('M14 30 H50 L60 42 H114 V104 H14 Z', p.fg) + lf(64, 96, 0, 46, 17, p.bg); });
+  add('돋보기 나무', function (p) { return line('M84 84 L110 110', p.ac, 13) + dot(54, 54, 38, p.fg) + twig(54, 76, 0.85, p.bg, 5, null); });
+  add('색인 탭', function (p) { return box(16, 40, 96, 72, 8, p.fg) + box(16, 20, 28, 30, 6, p.fg) + box(50, 20, 28, 30, 6, p.ac) + box(84, 20, 28, 30, 6, p.fg) + line('M32 70 H96 M32 88 H76', p.bg, 6); });
+
+  // ════ 8. 노드와 연결 ════
+  group = '노드와 연결';
+  add('삼각 노드', function (p) { return line('M64 36 L34 90 H94 Z', p.ac, 6) + dot(64, 36, 15, p.fg) + dot(34, 90, 15, p.fg) + dot(94, 90, 15, p.fg); });
+  add('그물', function (p) { return line('M40 40 H88 V88 H40 Z M40 40 L88 88', p.ac, 6) + dot(40, 40, 12, p.fg) + dot(88, 40, 12, p.fg) + dot(40, 88, 12, p.fg) + dot(88, 88, 12, p.fg); });
+  add('가로 사슬', function (p) { return line('M38 64 H90', p.ac, 6) + box(10, 48, 32, 32, 9, p.fg) + box(48, 48, 32, 32, 9, p.fg) + box(86, 48, 32, 32, 9, p.fg); });
+  add('세로 사슬', function (p) { return line('M64 30 V98', p.ac, 6) + dot(64, 24, 13, p.fg) + dot(64, 64, 13, p.fg) + dot(64, 104, 13, p.fg); });
+  add('별자리 1', function (p) { return line('M22 86 L44 42 L66 72 L88 30 L106 64', p.ac, 5) + dot(22, 86, 9, p.fg) + dot(44, 42, 9, p.fg) + dot(66, 72, 9, p.fg) + dot(88, 30, 9, p.fg) + dot(106, 64, 9, p.fg); });
+  add('별자리 2', function (p) { return line('M24 40 L56 30 L72 62 L104 52 M72 62 L60 98 L98 96', p.ac, 5) + dot(24, 40, 8, p.fg) + dot(56, 30, 10, p.fg) + dot(72, 62, 11, p.fg) + dot(104, 52, 8, p.fg) + dot(60, 98, 9, p.fg) + dot(98, 96, 7, p.fg); });
+  add('별자리 3', function (p) { return line('M28 96 L48 60 L84 70 L100 30 M48 60 L40 26', p.ac, 5) + dot(28, 96, 9, p.fg) + dot(48, 60, 11, p.fg) + dot(84, 70, 9, p.fg) + dot(100, 30, 10, p.fg) + dot(40, 26, 7, p.fg); });
+  add('이진 노드', function (p) { return line('M64 26 L38 60 M64 26 L90 60 M38 60 L24 96 M38 60 L52 96 M90 60 L76 96 M90 60 L104 96', p.ac, 5) + dot(64, 26, 12, p.fg) + dot(38, 60, 10, p.fg) + dot(90, 60, 10, p.fg) + dot(24, 98, 8, p.fg) + dot(52, 98, 8, p.fg) + dot(76, 98, 8, p.fg) + dot(104, 98, 8, p.fg); });
+  add('노드 탑', function (p) { return dot(64, 28, 14, p.ac) + dot(46, 60, 14, p.fg) + dot(82, 60, 14, p.fg) + dot(28, 92, 14, p.fg) + dot(64, 92, 14, p.fg) + dot(100, 92, 14, p.fg); });
+  add('거꾸로 노드 탑', function (p) { return dot(28, 36, 14, p.fg) + dot(64, 36, 14, p.fg) + dot(100, 36, 14, p.fg) + dot(46, 68, 14, p.fg) + dot(82, 68, 14, p.fg) + dot(64, 100, 14, p.ac); });
+  add('벌집 3칸', function (p) { return fill(hexPath(64, 38, 26), p.fg) + fill(hexPath(40, 80, 26), p.fg) + fill(hexPath(88, 80, 26), p.ac); });
+  add('벌집 7칸', function (p) { var s = fill(hexPath(64, 64, 17), p.ac); for (var i = 0; i < 6; i++) { var q = polar(64, 64, 33, 60 * i); s += fill(hexPath(q[0], q[1], 17), p.fg); } return s; });
+  add('고리 노드', function (p) { var s = strokeP(hexPath(64, 64, 40), p.ac, 6); for (var i = 0; i < 6; i++) { var q = polar(64, 64, 40, 60 * i - 90); s += dot(q[0], q[1], 10, p.fg); } return s; });
+  add('사다리', function (p) { return line('M40 30 H88 M40 64 H88 M40 98 H88', p.ac, 6) + line('M40 16 V112 M88 16 V112', p.fg, 9); });
+  add('두 원', function (p) { return '<circle cx="46" cy="64" r="34" fill="' + p.fg + '" fill-opacity="0.8"/><circle cx="82" cy="64" r="34" fill="' + p.ac + '" fill-opacity="0.8"/>'; });
+  add('세 원', function (p) { return '<circle cx="64" cy="44" r="30" fill="' + p.fg + '" fill-opacity="0.75"/><circle cx="44" cy="78" r="30" fill="' + p.fg + '" fill-opacity="0.75"/><circle cx="84" cy="78" r="30" fill="' + p.ac + '" fill-opacity="0.75"/>'; });
+  add('점 사이 길', function (p) { var s = line('M30 30 H98 V64 H30 V98 H98', p.ac, 6); [30, 64, 98].forEach(function (y) { [30, 64, 98].forEach(function (x) { s += dot(x, y, 8, p.fg); }); }); return s; });
+  add('점 사이 계단', function (p) { var s = line('M30 98 H64 V64 H98 V30', p.ac, 6); [30, 64, 98].forEach(function (y) { [30, 64, 98].forEach(function (x) { s += dot(x, y, 8, p.fg); }); }); return s; });
+  add('중괄호 목차', function (p) { return line('M52 26 C38 26 46 60 30 64 C46 68 38 102 52 102', p.ac, 8) + line('M64 34 H100 M64 64 H100 M64 94 H88', p.fg, 11); });
+  add('목차', function (p) { return line('M36 34 V90 M36 62 H52 M36 90 H52', p.ac, 6) + line('M36 34 H94 M56 62 H94 M56 90 H82', p.fg, 11); });
+  add('계단 노드', function (p) { return line('M24 100 H50 V74 H76 V48 H102 V28', p.ac, 6) + dot(24, 100, 10, p.fg) + dot(50, 74, 10, p.fg) + dot(76, 48, 10, p.fg) + dot(102, 24, 10, p.fg); });
+  add('궤도', function (p) { return ring(64, 64, 42, p.ac, 5) + dot(64, 64, 16, p.fg) + dot(64, 22, 9, p.fg) + dot(100, 85, 9, p.fg) + dot(28, 85, 9, p.fg); });
+  add('엇갈린 궤도', function (p) { return '<ellipse cx="64" cy="64" rx="50" ry="20" fill="none" stroke="' + p.ac + '" stroke-width="5" transform="rotate(35 64 64)"/><ellipse cx="64" cy="64" rx="50" ry="20" fill="none" stroke="' + p.ac + '" stroke-width="5" transform="rotate(-35 64 64)"/>' + dot(64, 64, 13, p.fg); });
+  add('마름모 그물', function (p) { return line('M64 22 L106 64 L64 106 L22 64 Z M64 22 V106 M22 64 H106', p.ac, 5) + dot(64, 22, 10, p.fg) + dot(106, 64, 10, p.fg) + dot(64, 106, 10, p.fg) + dot(22, 64, 10, p.fg) + dot(64, 64, 12, p.fg); });
+  add('정육면체', function (p) { return strokeP('M64 14 L106 38 V88 L64 112 L22 88 V38 Z M22 38 L64 62 L106 38 M64 62 V112', p.fg, 7) + dot(64, 62, 9, p.ac); });
+  add('오각 고리', function (p) { var d = '', s = ''; for (var i = 0; i < 5; i++) { var q = polar(64, 66, 42, 72 * i - 90); d += (i ? 'L' : 'M') + q[0] + ' ' + q[1] + ' '; s += dot(q[0], q[1], 11, p.fg); } return line(d + 'Z', p.ac, 6) + s; });
+  add('별 그물', function (p) { var pts = [], d = '', s = ''; for (var i = 0; i < 5; i++) pts.push(polar(64, 66, 44, 72 * i - 90)); [0, 2, 4, 1, 3].forEach(function (k, i) { d += (i ? 'L' : 'M') + pts[k][0] + ' ' + pts[k][1] + ' '; }); pts.forEach(function (q) { s += dot(q[0], q[1], 9, p.fg); }); return line(d + 'Z', p.ac, 5) + s; });
+  add('지그재그', function (p) { return line('M20 84 L42 44 L64 84 L86 44 L108 84', p.ac, 6) + dot(20, 84, 10, p.fg) + dot(42, 44, 10, p.fg) + dot(64, 84, 10, p.fg) + dot(86, 44, 10, p.fg) + dot(108, 84, 10, p.fg); });
+
+  // ════ 9. 틀 안의 나무 ════
+  group = '틀 안의 나무';
+  add('원 속 나무', function (p) { return ring(64, 64, 48, p.fg, 8) + twig(64, 98, 1.15, p.fg, 7, p.ac); });
+  add('네모 속 나무', function (p) { return outl(16, 16, 96, 96, 22, p.fg, 8) + twig(64, 98, 1.15, p.fg, 7, p.ac); });
+  add('육각 속 나무', function (p) { return strokeP(hexPath(64, 64, 52), p.fg, 8) + twig(64, 98, 1.1, p.fg, 7, p.ac); });
+  add('방패 나무', function (p) { return fill('M64 10 L108 26 V62 C108 90 88 108 64 118 C40 108 20 90 20 62 V26 Z', p.fg) + twig(64, 96, 1.1, p.bg, 6, null); });
+  add('둥근 도장 나무', function (p) { return dot(64, 64, 52, p.fg) + twig(64, 98, 1.2, p.bg, 7, null); });
+  add('물방울 속 나무', function (p) { return fill('M64 116 C38 116 26 98 26 80 C26 58 48 42 64 14 C80 42 102 58 102 80 C102 98 90 116 64 116 Z', p.fg) + twig(64, 104, 0.95, p.bg, 5.5, null); });
+  add('마름모 속 나무', function (p) { return strokeP('M64 8 L120 64 L64 120 L8 64 Z', p.fg, 8) + twig(64, 94, 1, p.fg, 6, p.ac); });
+  add('구름 속 나무', function (p) { return dot(44, 62, 28, p.fg) + dot(84, 62, 28, p.fg) + dot(64, 42, 28, p.fg) + box(34, 62, 60, 30, 14, p.fg) + twig(64, 88, 0.95, p.bg, 5.5, null); });
+  add('핀 나무', function (p) { return fill('M64 120 C40 86 26 70 26 52 A38 38 0 1 1 102 52 C102 70 88 86 64 120 Z', p.fg) + twig(64, 76, 0.9, p.bg, 5.5, null); });
+  add('별 도장 나무', function (p) { var d = ''; for (var i = 0; i < 16; i++) { var q = polar(64, 64, i % 2 ? 46 : 56, 22.5 * i); d += (i ? 'L' : 'M') + q[0] + ' ' + q[1] + ' '; } return fill(d + 'Z', p.fg) + twig(64, 92, 1, p.bg, 6, null); });
+
+  // ════ 10. 식물 ════
+  group = '식물';
+  add('대나무 마디', function (p) { return box(54, 10, 20, 32, 5, p.fg) + box(54, 48, 20, 32, 5, p.fg) + box(54, 86, 20, 32, 5, p.fg) + lf(74, 46, 60, 40, 11, p.ac) + lf(54, 84, -60, 36, 10, p.ac); });
+  add('이삭', function (p) { var s = line('M64 118 V44', p.ac, 6); [48, 66, 84].forEach(function (y) { s += lf(64, y, -40, 26, 9, p.fg) + lf(64, y, 40, 26, 9, p.fg); }); return s + lf(64, 36, 0, 26, 9, p.fg); });
+  add('세 잎 클로버', function (p) { var s = line('M64 70 C64 96 72 106 84 114', p.ac, 7); [0, -75, 75].forEach(function (r) { s += '<g transform="rotate(' + r + ' 64 66)">' + fill('M64 66 C40 50 42 22 56 22 C62 22 64 28 64 30 C64 28 66 22 72 22 C86 22 88 50 64 66 Z', p.fg) + '</g>'; }); return s; });
+  add('네 잎 클로버', function (p) { var s = line('M64 64 C64 92 72 104 86 114', p.ac, 7); [0, 90, 180, 270].forEach(function (r) { s += '<g transform="rotate(' + r + ' 64 60)">' + fill('M64 60 C42 46 44 20 56 20 C62 20 64 26 64 28 C64 26 66 20 72 20 C84 20 86 46 64 60 Z', p.fg) + '</g>'; }); return s; });
+  add('다섯 꽃잎', function (p) { var s = ''; for (var i = 0; i < 5; i++) { var q = polar(64, 64, 28, 72 * i - 90); s += dot(q[0], q[1], 21, p.fg); } return s + dot(64, 64, 13, p.ac); });
+  add('튤립', function (p) { return line('M64 116 V70', p.ac, 7) + lf(64, 104, -55, 34, 12, p.ac) + fill('M36 26 L50 40 L64 20 L78 40 L92 26 V52 C92 70 80 80 64 80 C48 80 36 70 36 52 Z', p.fg); });
+  add('버섯', function (p) { return box(52, 60, 24, 54, 10, p.ac) + fill('M12 68 C12 6 116 6 116 68 Z', p.fg) + dot(44, 44, 8, p.bg) + dot(76, 34, 6, p.bg) + dot(90, 54, 5, p.bg); });
+  add('도토리', function (p) { return fill('M34 56 H94 C94 92 78 112 64 118 C50 112 34 92 34 56 Z', p.fg) + fill('M26 54 C26 24 102 24 102 54 Z', p.ac) + line('M64 28 V12', p.ac, 7); });
+  add('솔방울', function (p) { var s = ''; [[64, 24], [50, 42], [78, 42], [38, 62], [64, 62], [90, 62], [50, 82], [78, 82], [64, 102]].forEach(function (q) { s += '<ellipse cx="' + q[0] + '" cy="' + q[1] + '" rx="15" ry="12" fill="' + p.fg + '" stroke="' + p.bg + '" stroke-width="3"/>'; }); return s; });
+  add('야자', function (p) { return line('M62 116 C62 90 66 76 70 56', p.ac, 9) + lf(70, 56, -75, 50, 12, p.fg) + lf(70, 56, -30, 48, 12, p.fg) + lf(70, 56, 30, 46, 12, p.fg) + lf(70, 56, 80, 44, 12, p.fg) + lf(70, 56, -120, 36, 10, p.fg); });
+  add('버드나무', function (p) { return line('M64 116 V52', p.fg, 10) + line('M64 52 C40 30 22 44 22 96 M64 52 C50 34 40 46 40 104 M64 52 C88 30 106 44 106 96 M64 52 C78 34 88 46 88 104 M64 52 V30', p.ac, 6); });
+  add('선인장', function (p) { return line('M64 114 V26', p.fg, 22) + line('M64 86 H38 V58', p.fg, 13) + line('M64 70 H92 V44', p.fg, 13) + dot(64, 18, 5, p.ac); });
+  add('분재', function (p) { return line('M64 92 C66 72 42 66 50 44 M57 70 C70 64 82 66 88 54', p.fg, 7) + dot(48, 36, 17, p.fg) + dot(90, 46, 14, p.fg) + dot(70, 26, 12, p.fg) + fill('M38 92 H90 L84 114 H44 Z', p.ac); });
+  add('열매 가지', function (p) { return line('M64 14 C64 40 46 52 42 74 M64 14 C66 44 84 54 88 80', p.ac, 6) + lf(64, 18, 70, 34, 12, p.fg) + dot(40, 90, 19, p.fg) + dot(90, 96, 19, p.fg); });
+  add('포도송이', function (p) { var s = line('M64 10 V30', p.ac, 7) + lf(64, 22, 70, 30, 11, p.ac); [[40, 44], [64, 44], [88, 44], [52, 66], [76, 66], [64, 88], [64, 108]].forEach(function (q, i) { s += dot(q[0], q[1], i === 6 ? 10 : 13, p.fg); }); return s; });
+  add('민들레', function (p) { var s = line('M64 118 V62', p.ac, 6); for (var i = 0; i < 9; i++) { var q = polar(64, 54, 38, 22.5 * i - 180); s += line('M64 54 L' + q[0] + ' ' + q[1], p.fg, 3.5) + dot(q[0], q[1], 6, p.fg); } return s + dot(64, 54, 8, p.fg); });
+  add('고사리', function (p) { var s = line('M64 118 V20', p.ac, 6); [100, 80, 60, 40].forEach(function (y, i) { var len = 34 - i * 5; s += lf(64, y, -65, len, 9, p.fg) + lf(64, y - 8, 65, len, 9, p.fg); }); return s + lf(64, 26, 0, 18, 7, p.fg); });
+  add('덩굴', function (p) { return line('M20 104 C40 104 44 76 64 76 C84 76 84 48 64 48 C50 48 50 64 62 64', p.fg, 9) + lf(84, 70, 60, 34, 13, p.ac) + lf(44, 92, -40, 28, 11, p.ac); });
+  add('그루터기 새싹', function (p) { return box(26, 78, 76, 36, 8, p.fg) + '<ellipse cx="64" cy="80" rx="38" ry="12" fill="' + p.ac + '"/>' + line('M64 80 V44', p.fg, 6) + lf(64, 58, -50, 30, 12, p.fg) + lf(64, 50, 46, 32, 12, p.fg); });
+  add('학사모 새싹', function (p) { return fill('M64 50 L116 72 L64 94 L12 72 Z', p.fg) + fill('M34 84 V102 C50 114 78 114 94 102 V84 L64 98 Z', p.fg) + line('M64 60 V28', p.ac, 6) + lf(64, 42, -50, 28, 11, p.ac) + lf(64, 34, 46, 30, 11, p.ac); });
+
+  var color = { bg: '#4f46e5', fg: '#ffffff', ac: '#c7d2fe' };
+  var inputs = { bg: document.getElementById('c-bg'), fg: document.getElementById('c-fg'), ac: document.getElementById('c-ac') };
+  var grid = document.getElementById('grid');
+  var status = document.getElementById('status');
+
+  function svgOf(mark, size) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 128 128">' +
+      '<rect width="128" height="128" fill="' + color.bg + '"/>' + mark[1](color) + '</svg>';
+  }
+
+  // 카드는 한 번만 만들고, 색이 바뀌면 그림만 다시 그린다 (키보드 초점이 유지된다)
+  var lastGroup = '';
+  var cards = MARKS.map(function (mark, i) {
+    var id = String(i + 1).padStart(3, '0');
+    if (mark[2] !== lastGroup) {
+      lastGroup = mark[2];
+      var h = document.createElement('h2');
+      h.textContent = lastGroup + ' (' + MARKS.filter(function (m) { return m[2] === lastGroup; }).length + ')';
+      grid.appendChild(h);
+    }
+    var btn = document.createElement('button');
+    btn.className = 'logo';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', id + '번 ' + mark[0] + ' 내려받기');
+    var pic = document.createElement('span');
+    var name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = id + '. ' + mark[0];
+    btn.appendChild(pic);
+    btn.appendChild(name);
+    btn.addEventListener('click', function () { download(mark, id); });
+    grid.appendChild(btn);
+    return { mark: mark, pic: pic };
+  });
+
+  function paint() {
+    cards.forEach(function (c) { c.pic.innerHTML = svgOf(c.mark, 96); });
+  }
+
+  function setColor(next) {
+    color = { bg: next.bg, fg: next.fg, ac: next.ac };
+    inputs.bg.value = color.bg; inputs.fg.value = color.fg; inputs.ac.value = color.ac;
+    paint();
+  }
+
+  var presetBox = document.getElementById('presets');
+  PRESETS.forEach(function (p) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'preset';
+    b.innerHTML = '<i style="background:linear-gradient(135deg,' + p.bg + ' 50%,' + p.fg + ' 50%)"></i>' + p.name;
+    b.addEventListener('click', function () { setColor(p); });
+    presetBox.appendChild(b);
+  });
+  ['bg', 'fg', 'ac'].forEach(function (k) {
+    inputs[k].addEventListener('input', function () { color[k] = inputs[k].value; paint(); });
+  });
+
+  function download(mark, id) {
+    var size = Number(document.querySelector('input[name=size]:checked').value);
+    var fmt = document.querySelector('input[name=fmt]:checked').value;
+    var img = new Image();
+    img.onload = function () {
+      var canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      canvas.getContext('2d').drawImage(img, 0, 0, size, size);
+      canvas.toBlob(function (blob) {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'notetree-logo-' + id + '-' + size + '.' + (fmt === 'jpeg' ? 'jpg' : 'png');
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+        status.textContent = a.download + ' 저장됨 · ' + (blob.size / 1024).toFixed(1) + 'KB' +
+          (blob.size > 250 * 1024 ? ' (250KB를 넘습니다. 크기를 줄이세요)' : '');
+      }, 'image/' + fmt, 0.92);
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgOf(mark, size));
+  }
+
+  paint();
+})();
+</script>
+</body>
+</html>
