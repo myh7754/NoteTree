@@ -26,11 +26,11 @@ export function Intro() {
         <AccountMenu />
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-12">
+      <main className="mx-auto max-w-6xl px-6 py-12">
         {/* 좁은 화면에서는 미리보기가 글 아래로 내려간다 */}
         <div className="flex flex-col gap-10 lg:flex-row lg:items-center">
-          <div className="lg:w-[420px] lg:flex-shrink-0">
-            <h1 className="text-3xl font-bold leading-snug text-slate-50 sm:text-4xl">
+          <div className="lg:w-[400px] lg:flex-shrink-0">
+            <h1 className="break-keep text-3xl font-bold leading-snug text-slate-50 sm:text-4xl">
               공부한 걸 트리로 정리하고, 그대로 남에게 보여주세요
             </h1>
             <p className="mt-4 text-sm leading-relaxed text-slate-400">

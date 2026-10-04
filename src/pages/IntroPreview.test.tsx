@@ -39,6 +39,15 @@ describe('IntroPreview', () => {
     expect(useMindMapStore.getState().readOnly).toBe(true);
   });
 
+  it('노드 크기가 잡힌 뒤 화면을 한 번 더 맞춘다 — 처음 맞춤은 크기를 재기 전이라 맵이 한쪽에 몰린다', async () => {
+    loadPublicMap.mockResolvedValue(found);
+    render(<IntroPreview handle="myh" slug="자바" />);
+    await screen.findByTestId('canvas');
+    const atReady = useMindMapStore.getState().fitRequest;
+
+    await waitFor(() => expect(useMindMapStore.getState().fitRequest).toBeGreaterThan(atReady));
+  });
+
   it('불러오는 동안에도 칸 자리는 잡혀 있다 — 맵이 뜰 때 글이 밀리지 않게', () => {
     loadPublicMap.mockReturnValue(new Promise(() => {}));
     render(<IntroPreview handle="myh" slug="자바" />);
