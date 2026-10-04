@@ -107,3 +107,17 @@ npm run build
 
 동기화 판단 로직은 `src/utils/syncMerge.ts` 의 순수 함수(`planSync`)로 분리되어
 있어 서버 없이 전부 테스트됩니다.
+
+## 운영 모니터링
+
+아래 주소는 모두 운영자 계정으로 로그인해야 열립니다.
+
+| 볼 것 | 주소 |
+|---|---|
+| 방문자·가입·기능 사용 (한 페이지) | [PostHog 대시보드](https://us.posthog.com/project/638922/dashboard/2160882) |
+| 오류 내용 | [Sentry](https://sentry.io/issues/) |
+| DB·저장소·인증 로그 | [Supabase](https://supabase.com/dashboard/project/aobgrdbreyzqldhdfcxb) |
+| 사이트·DB 생존 확인 (6시간마다) | [GitHub Actions](https://github.com/myh7754/NoteTree/actions/workflows/supabase-keepalive.yml) |
+
+수집 원칙과 이벤트 목록은 `docs/superpowers/specs/2026-09-30-monitoring-design.md`,
+수집 코드는 `src/lib/analytics.ts` 한 곳에 있습니다. 노트 본문·맵 제목·노드 이름은 보내지 않습니다.
