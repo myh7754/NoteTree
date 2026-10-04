@@ -24,3 +24,25 @@ export async function getStorageUsed(): Promise<number | null> {
   if (error || !data) return null;
   return data.reduce((sum, row) => sum + (Number(row.size_bytes) || 0), 0);
 }
+
+/**
+ * 서버에 올라간 양이 바뀌었다는 신호. 올리기·동기화가 끝날 때 보내고, 사용량을 보여 주는 곳이 듣고 다시 읽는다.
+ * db 층은 스토어를 모르므로(스토어가 db를 쓴다) 창 이벤트로 알린다.
+ */
+export const STORAGE_CHANGED = 'notetree:storage-changed';
+export const notifyStorageChanged = () => window.dispatchEvent(new Event(STORAGE_CHANGED));
+
+/** 사용량을 화면에 보여 줄 숫자들로 바꾼다. */
+export function storageSummary(used: number) {
+  const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
+  const ratio = Math.min(100, (used / QUOTA_BYTES) * 100);
+  return {
+    ratio,
+    // 조금이라도 썼으면 1%부터 — 0%는 "아무것도 없다"로 읽힌다
+    percent: used > 0 ? Math.max(1, Math.round(ratio)) : 0,
+    usedMb: mb(used),
+    quotaMb: mb(QUOTA_BYTES),
+    // "노드 약 몇 개 더"는 어림이라 백 단위로 내린다
+    nodesLeft: Math.max(0, Math.floor((QUOTA_BYTES - used) / BYTES_PER_NODE / 100) * 100),
+  };
+}

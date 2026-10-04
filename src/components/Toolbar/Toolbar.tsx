@@ -8,6 +8,7 @@ import { AccountMenu } from './AccountMenu';
 import { ViewMenu } from './ViewMenu';
 import { FileMenu } from './FileMenu';
 import { PublishMenu } from './PublishMenu';
+import { StorageMeter } from './StorageMeter';
 
 const ghost =
   'flex items-center gap-1.5 rounded-md p-1.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed';
@@ -65,6 +66,7 @@ export function Toolbar() {
 
       <div className="flex-1" />
 
+      <StorageMeter />
       <PublishMenu />
       <AccountMenu />
       <FileMenu />

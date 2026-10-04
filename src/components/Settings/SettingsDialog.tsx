@@ -18,7 +18,8 @@ import { MAP_THEMES, type MapTheme } from '../../utils/mapTheme';
 import { COLOR_MODES } from '../../utils/colorMode';
 import { directionOf } from '../../utils/layout';
 import { ShortcutList } from '../ShortcutsHelp/ShortcutsHelp';
-import { BYTES_PER_NODE, QUOTA_BYTES, getStorageUsed } from '../../db/storage';
+import { storageSummary } from '../../db/storage';
+import { useStorageUsed } from '../../hooks/useStorageUsed';
 
 /**
  * 설정창.
@@ -473,21 +474,9 @@ function PublishTab() {
  * "노드로 치면 얼마나 더 들어가는지"를 어림으로 같이 보여 준다.
  */
 function StorageRow() {
-  const [used, setUsed] = useState<number | null>(null);
-  useEffect(() => {
-    let alive = true;
-    getStorageUsed()
-      .then((v) => alive && setUsed(v))
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
-
+  const used = useStorageUsed();
   if (used === null) return null; // 못 읽었으면 틀린 숫자를 보여 주느니 숨긴다
-  const mb = (n: number) => (n / 1024 / 1024).toFixed(1);
-  const percent = Math.min(100, (used / QUOTA_BYTES) * 100);
-  const nodesLeft = Math.max(0, Math.floor((QUOTA_BYTES - used) / BYTES_PER_NODE / 100) * 100);
+  const { ratio: percent, usedMb, quotaMb, nodesLeft } = storageSummary(used);
   return (
     <Row
       label="저장 공간"
@@ -507,7 +496,7 @@ function StorageRow() {
         />
       </div>
       <div className="mt-1 text-[11px] text-slate-400">
-        {mb(used)}MB / {mb(QUOTA_BYTES)}MB 사용 ({percent.toFixed(1)}%)
+        {usedMb}MB / {quotaMb}MB 사용 ({percent.toFixed(1)}%)
       </div>
     </Row>
   );

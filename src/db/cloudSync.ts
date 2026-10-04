@@ -1,6 +1,7 @@
 import type { MindMapData, PersistedState } from '../types';
 import { supabase } from './supabase';
 import { planSync, type SyncEntry } from '../utils/syncMerge';
+import { notifyStorageChanged } from './storage';
 import {
   listSyncEntries,
   loadMindMap,
@@ -111,6 +112,7 @@ export async function syncNow(): Promise<SyncResult | null> {
     await purgeMap(id);
   }
 
+  notifyStorageChanged();
   return {
     pushed: plan.push.length,
     pulled: plan.pull.length,
@@ -139,6 +141,8 @@ export async function pushMap(mapId: string): Promise<void> {
     deleted_at: null,
   });
   if (error) throw new Error(quotaMessage(error.message) ?? `업로드 실패: ${error.message}`);
+  // ponytail: 자동 저장마다 사용량을 다시 읽게 된다(작은 조회 한 번). 조회가 부담되면 여기서 간격을 둔다.
+  notifyStorageChanged();
 }
 
 /**
