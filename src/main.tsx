@@ -13,11 +13,15 @@ import { initAnalytics, identify, track } from './lib/analytics';
 import { Analytics } from '@vercel/analytics/react';
 import { onAccountShortcuts } from './db/shortcutSync';
 import { useMindMapStore } from './store/useMindMapStore';
+import { applyColorMode, watchSystemTheme } from './utils/colorMode';
 import './index.css';
 
 // 앱보다 먼저 켠다 — 초기화 중에 터진 에러도 잡으려면 가장 앞이어야 한다.
 initSentry();
 initAnalytics();
+// 첫 그림 전에 색 모드를 붙인다 — 라이트 사용자에게 어두운 화면이 번쩍이지 않게.
+applyColorMode(useMindMapStore.getState().colorMode);
+watchSystemTheme(() => useMindMapStore.getState().colorMode);
 // 로그인하면 계정에 저장해 둔 단축키 설정을 가져온다
 onAccountShortcuts((raw) => useMindMapStore.getState().setShortcutOverrides(raw));
 

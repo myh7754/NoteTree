@@ -15,6 +15,7 @@ import { handleUrl, mapUrl } from '../../utils/publish';
 import { track } from '../../lib/analytics';
 import { HandleForm } from '../Toolbar/HandleForm';
 import { MAP_THEMES, type MapTheme } from '../../utils/mapTheme';
+import { COLOR_MODES } from '../../utils/colorMode';
 import { directionOf } from '../../utils/layout';
 import { ShortcutList } from '../ShortcutsHelp/ShortcutsHelp';
 import { BYTES_PER_NODE, QUOTA_BYTES, getStorageUsed } from '../../db/storage';
@@ -122,6 +123,8 @@ function ScreenTab() {
   const setSide = useMindMapStore((s) => s.setNotePanelSide);
   const theme = useMindMapStore((s) => s.mapTheme);
   const setTheme = useMindMapStore((s) => s.setMapTheme);
+  const colorMode = useMindMapStore((s) => s.colorMode);
+  const setColorMode = useMindMapStore((s) => s.setColorMode);
   const direction = useMindMapStore((s) => directionOf(s.mindMapData));
   const mapTitle = useMindMapStore((s) => s.mindMapData.title);
   const readOnly = useMindMapStore((s) => s.readOnly);
@@ -131,6 +134,23 @@ function ScreenTab() {
 
   return (
     <div className="space-y-5">
+      <Row label="색 모드" hint="화면 전체의 밝기. 시스템 따름은 운영체제 설정을 따라갑니다. 이 브라우저에만 저장됩니다.">
+        <div className="flex gap-1">
+          {COLOR_MODES.map((m) => (
+            <button
+              key={m.id}
+              className={`rounded px-3 py-1.5 text-xs ${
+                colorMode === m.id ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+              aria-pressed={colorMode === m.id}
+              onClick={() => setColorMode(m.id)}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </Row>
+
       <Row label="맵 모양" hint="노드와 선을 그리는 방식. 내용은 바뀌지 않습니다. 이 브라우저에만 저장됩니다.">
         <div className="grid grid-cols-3 gap-2">
           {MAP_THEMES.map((t) => (

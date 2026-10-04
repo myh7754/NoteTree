@@ -12,6 +12,7 @@ import {
   type LayoutDirection,
 } from '../utils/layout';
 import { nanoid } from 'nanoid';
+import { applyColorMode, readColorMode, type ColorMode } from '../utils/colorMode';
 import { track } from '../lib/analytics';
 
 // ─── 초기 데이터 ──────────────────────────────────────────────
@@ -240,6 +241,8 @@ interface MindMapStoreState {
   notePanelSide: 'left' | 'right';
   /** 맵 모양(노드·선을 그리는 방식). 이것도 이 기기의 취향이라 localStorage에 둔다. */
   mapTheme: MapTheme;
+  /** 색 모드(시스템 따름/다크/라이트). 이것도 이 기기의 취향이라 localStorage에 둔다. */
+  colorMode: ColorMode;
   /**
    * 사용자가 기본값과 다르게 바꾼 단축키만 담는다. 이 브라우저(localStorage)에 두고,
    * 로그인 중이면 계정에도 올린다. 계정에 저장된 게 있으면 로그인할 때 그것이 이긴다.
@@ -288,6 +291,7 @@ interface MindMapStoreActions {
   bumpPublishRevision: () => void;
   setNotePanelSide: (side: 'left' | 'right') => void;
   setMapTheme: (theme: MapTheme) => void;
+  setColorMode: (mode: ColorMode) => void;
   /** 지금 열려 있는 맵의 방향을 바꾼다. 맵 데이터에 저장된다 (mindMapData.direction). */
   setLayoutDirection: (direction: LayoutDirection) => void;
   setShortcut: (action: ActionId, combo: string) => void;
@@ -338,6 +342,7 @@ export const useMindMapStore = create<MindMapStore>()(
       publishRevision: 0,
       notePanelSide: localStorage.getItem('note-panel-side') === 'left' ? 'left' : 'right',
       mapTheme: readMapTheme(localStorage.getItem('map-theme')),
+      colorMode: readColorMode(localStorage.getItem('color-mode')),
       shortcutOverrides: readShortcutOverrides(),
       saveStatus: 'idle',
       saveError: null,
@@ -756,6 +761,12 @@ export const useMindMapStore = create<MindMapStore>()(
       setMapTheme: (theme) => {
         localStorage.setItem('map-theme', theme);
         set({ mapTheme: theme });
+      },
+
+      setColorMode: (mode) => {
+        localStorage.setItem('color-mode', mode);
+        applyColorMode(mode);
+        set({ colorMode: mode });
       },
 
       setNoteDrawerWidth: (width) => {

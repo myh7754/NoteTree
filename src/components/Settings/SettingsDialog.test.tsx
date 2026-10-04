@@ -77,6 +77,18 @@ describe('SettingsDialog', () => {
     expect(localStorage.getItem('note-panel-side')).toBe('left');
   });
 
+  it('색 모드를 라이트로 바꾸면 저장되고 화면에 바로 적용된다', () => {
+    render(<SettingsDialog />);
+    for (const label of ['시스템 따름', '다크', '라이트']) {
+      expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole('button', { name: '라이트' }));
+    expect(useMindMapStore.getState().colorMode).toBe('light');
+    expect(localStorage.getItem('color-mode')).toBe('light');
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(screen.getByRole('button', { name: '라이트' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('배경을 누르면 닫힌다', () => {
     render(<SettingsDialog />);
     fireEvent.click(screen.getByRole('dialog').parentElement!);
