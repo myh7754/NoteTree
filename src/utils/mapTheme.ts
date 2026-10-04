@@ -20,7 +20,6 @@ export const readMapTheme = (v: string | null): MapTheme =>
   MAP_THEMES.some((t) => t.id === v) ? (v as MapTheme) : 'classic';
 
 const BRANCH_COLORS = ['#7aa2f7', '#9ece6a', '#e0af68', '#bb9af7', '#f7768e', '#7dcfff'];
-const CLASSIC_EDGE_COLORS = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe'];
 
 const branchColor = (branch: number) =>
   branch < 0 ? '#6366f1' : BRANCH_COLORS[branch % BRANCH_COLORS.length];
@@ -73,24 +72,6 @@ const text = (fontSize: number, lineHeight: number, fontWeight: number): CSSProp
  * 어느 테마에서든 테마 색보다 우선한다.
  */
 export function nodeLook(theme: MapTheme, depth: number, branch: number, custom?: string): NodeLook {
-  if (theme === 'classic') {
-    return {
-      plain: false,
-      anchor: 'mid',
-      style: {
-        background: custom ?? '#1e293b',
-        border: `1px solid ${custom ? custom + '80' : '#334155'}`,
-        color: '#e2e8f0',
-        minWidth: 120,
-        padding: '8px 12px',
-        borderRadius: 8,
-        ...text(14, 20, 500),
-      },
-    };
-  }
-
-  const c = custom ?? branchColor(branch);
-
   // 중심 주제는 어느 모양에서든 크게 채운다
   if (depth === 0) {
     return {
@@ -107,7 +88,44 @@ export function nodeLook(theme: MapTheme, depth: number, branch: number, custom?
     };
   }
 
+  const c = custom ?? branchColor(branch);
   const top = depth === 1;
+
+  if (theme === 'classic') {
+    // 직접 칠한 노드는 깊이와 상관없이 꽉 채운 상자다 — 이미 칠해 둔 맵의 모양을 바꾸지 않는다
+    if (custom) {
+      return {
+        plain: false,
+        anchor: 'mid',
+        style: {
+          background: custom,
+          border: `1px solid ${custom}80`,
+          color: '#e2e8f0',
+          minWidth: 120,
+          padding: '8px 12px',
+          borderRadius: 8,
+          ...text(14, 20, 500),
+        },
+      };
+    }
+    // 큰 가지만 상자다. 가지 색을 옅게 깔아 어느 가지인지 보인다.
+    if (top) {
+      return {
+        plain: false,
+        anchor: 'mid',
+        style: {
+          background: `color-mix(in srgb, ${c} 15%, #0f172a)`,
+          border: `1px solid color-mix(in srgb, ${c} 50%, #0f172a)`,
+          color: '#f1f5f9',
+          padding: '6px 12px',
+          borderRadius: 8,
+          ...text(14, 20, 600),
+        },
+      };
+    }
+    // 그 아래는 상자 없이 글자만 — 아래의 '글자만' 모양과 같다
+  }
+
   const font = top ? text(15, 20, 600) : text(13, 18, 400);
   const color = top ? '#f8fafc' : '#cbd5e1';
 
@@ -119,7 +137,7 @@ export function nodeLook(theme: MapTheme, depth: number, branch: number, custom?
     };
   }
 
-  // plain: 상자 없이 글자만. 직접 색을 칠했으면 그 색이 보이도록 옅은 상자를 준다.
+  // 상자 없이 글자만. 직접 색을 칠했으면 그 색이 보이도록 옅은 상자를 준다.
   return {
     plain: !custom,
     anchor: 'mid',
@@ -141,14 +159,9 @@ export function edgeLook(
   branch: number,
   custom?: string
 ): { color: string; width: number } {
-  if (theme === 'classic') {
-    return {
-      color: custom ?? CLASSIC_EDGE_COLORS[Math.min(depth, CLASSIC_EDGE_COLORS.length - 1)],
-      width: depth === 0 ? 2 : depth === 1 ? 1.5 : 1,
-    };
-  }
   // 밑줄형은 선 굵기를 밑줄 굵기와 맞춰 한 줄로 이어 보이게 한다
-  return { color: custom ?? branchColor(branch), width: depth === 0 ? (theme === 'underline' ? 3 : 2.5) : 1.5 };
+  const trunk = theme === 'underline' ? 3 : theme === 'plain' ? 2.5 : 2;
+  return { color: custom ?? branchColor(branch), width: depth === 0 ? trunk : 1.5 };
 }
 
 /**

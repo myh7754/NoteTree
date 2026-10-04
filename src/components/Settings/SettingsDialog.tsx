@@ -594,8 +594,8 @@ function ThemePreview({ theme }: { theme: MapTheme }) {
   const classic = theme === 'classic';
   const underline = theme === 'underline';
   const rows = [
-    { y: 15, label: '컬렉션', color: classic ? '#6366f1' : '#7aa2f7' },
-    { y: 45, label: 'JVM', color: classic ? '#6366f1' : '#9ece6a' },
+    { y: 15, label: '컬렉션', color: '#7aa2f7' },
+    { y: 45, label: 'JVM', color: '#9ece6a' },
   ];
   // 밑줄형은 선이 글자 아래(밑줄)로 들어간다
   const drop = underline ? 8 : 0;
@@ -610,7 +610,7 @@ function ThemePreview({ theme }: { theme: MapTheme }) {
             fill="none"
             strokeLinejoin="round"
           />
-          {classic && <rect x={56} y={y - 9} width={56} height={18} rx={4} fill="#1e293b" stroke="#475569" />}
+          {classic && <rect x={56} y={y - 9} width={56} height={18} rx={4} fill="#1a2238" stroke={color} />}
           <text x={classic ? 63 : 60} y={y} dominantBaseline="central" fontSize={10} fontWeight={500} fill="#f1f5f9">
             {label}
           </text>
@@ -622,8 +622,7 @@ function ThemePreview({ theme }: { theme: MapTheme }) {
         width={32}
         height={20}
         rx={5}
-        fill={classic ? '#1e293b' : '#6366f1'}
-        stroke={classic ? '#475569' : 'none'}
+        fill="#6366f1"
       />
       <text x={20} y={30} textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={700} fill="#ffffff">
         자바

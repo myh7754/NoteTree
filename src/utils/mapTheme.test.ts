@@ -13,11 +13,29 @@ describe('mapTheme', () => {
     expect(branch.has('root')).toBe(false);
   });
 
-  it('기본 테마는 예전 모양 그대로다', () => {
-    const { style } = nodeLook('classic', 2, 0);
-    expect(style.background).toBe('#1e293b');
+  it('상자 모양은 깊이가 모양으로 읽힌다 — 중심은 채우고, 큰 가지는 가지 색 상자, 그 아래는 글자만', () => {
+    expect(nodeLook('classic', 0, -1).style.background).toBe('#6366f1');
+
+    const top = nodeLook('classic', 1, 0);
+    expect(top.plain).toBe(false);
+    expect(String(top.style.background)).toContain('#7aa2f7');
+    expect(String(top.style.border)).toContain('#7aa2f7');
+
+    const leaf = nodeLook('classic', 2, 0);
+    expect(leaf.plain).toBe(true);
+    expect(leaf.style.background).toBeUndefined();
+  });
+
+  it('상자 모양에서 직접 칠한 노드는 깊이와 상관없이 꽉 채운 상자로 남는다', () => {
+    const { plain, style } = nodeLook('classic', 3, 0, '#ff0000');
+    expect(plain).toBe(false);
+    expect(style.background).toBe('#ff0000');
     expect(style.minWidth).toBe(120);
-    expect(edgeLook('classic', 0, 0)).toEqual({ color: '#6366f1', width: 2 });
+  });
+
+  it('상자 모양의 선도 가지 색을 쓴다', () => {
+    expect(edgeLook('classic', 0, 0)).toEqual({ color: '#7aa2f7', width: 2 });
+    expect(edgeLook('classic', 1, 1).color).toBe('#9ece6a');
   });
 
   it('직접 칠한 색은 어느 테마에서든 테마 색보다 우선한다', () => {
