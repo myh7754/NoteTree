@@ -57,6 +57,23 @@ describe('NodeActionBar', () => {
     expect(store().mindMapData.nodes[a]).toBeUndefined();
   });
 
+  it('도구를 눌러도 클릭이 노드로 올라가지 않는다 — 올라가면 노드가 다시 선택돼 방금 만든 자식의 이름 입력이 풀린다', () => {
+    const onNode = vi.fn();
+    render(
+      // 포털로 그려도 React 이벤트는 부모 컴포넌트(노드)로 올라간다
+      <div onClick={onNode} onDoubleClick={onNode} onMouseDown={onNode} onPointerDown={onNode}>
+        <NodeActionBar id={a} />
+      </div>
+    );
+    const add = screen.getByRole('button', { name: /자식/ });
+    fireEvent.pointerDown(add);
+    fireEvent.mouseDown(add);
+    fireEvent.click(add);
+    fireEvent.doubleClick(add);
+    expect(onNode).not.toHaveBeenCalled();
+    expect(store().mindMapData.children[a].length).toBeGreaterThan(0);
+  });
+
   it('중심 주제에는 삭제 버튼이 없다 — 눌러도 아무 일이 없는 버튼은 고장으로 보인다', () => {
     render(<NodeActionBar id={rootId} />);
     expect(screen.queryByRole('button', { name: '삭제' })).not.toBeInTheDocument();

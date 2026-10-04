@@ -9,6 +9,7 @@ const btn =
 const sep = <span className="mx-1 h-4 w-px bg-slate-700" />;
 /** 노드 위쪽에 이만큼(px) 자리가 없으면 도구를 아래에 띄운다 */
 const ROOM_ABOVE = 56;
+const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
 /**
  * 고른 노드 위에 뜨는 도구: 자식·표 추가, 노트, 색, 삭제.
@@ -34,6 +35,12 @@ export function NodeActionBar({ id }: { id: string }) {
         className="flex items-center gap-0.5 whitespace-nowrap rounded-lg border border-slate-700 bg-slate-800 p-1 shadow-xl"
         role="toolbar"
         aria-label="노드 도구"
+        // 포털로 그려도 React 이벤트는 노드로 올라간다. 막지 않으면 도구를 누를 때마다 이 노드가
+        // 다시 선택되어, 방금 만든 자식의 이름 입력이 풀리고 키 입력이 단축키로 샌다.
+        onClick={stop}
+        onDoubleClick={stop}
+        onMouseDown={stop}
+        onPointerDown={stop}
       >
         <button className={btn} onClick={() => addChildNode(id, 'text')} title="글자 자식 추가">
           <Icon name="plus" size={14} />
