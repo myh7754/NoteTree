@@ -4,6 +4,8 @@ import type { CSSProperties } from 'react';
  * 맵 모양(테마). 노드와 선을 **어떻게 그릴지**만 정한다 — 배치 계산은 건드리지 않는다.
  * 노드 크기가 달라지면 실측 크기를 보고 배치가 알아서 다시 잡힌다.
  *
+ * 색은 CSS 변수로 낸다(index.css). 다크/라이트는 변수 값만 다르고 여기 로직은 같다.
+ *
  * ponytail: 이 기기의 취향으로 localStorage에 둔다(노트 패널 위치와 같다). 그래서 공개
  * 페이지 방문자는 주인이 고른 모양이 아니라 기본 모양으로 본다. 주인이 고른 모양을
  * 보여 줘야 하면 맵 데이터에 넣는다.
@@ -19,10 +21,11 @@ export const MAP_THEMES: { id: MapTheme; label: string }[] = [
 export const readMapTheme = (v: string | null): MapTheme =>
   MAP_THEMES.some((t) => t.id === v) ? (v as MapTheme) : 'classic';
 
-const BRANCH_COLORS = ['#7aa2f7', '#9ece6a', '#e0af68', '#bb9af7', '#f7768e', '#7dcfff'];
+// 가지 색은 여섯 개를 돌려 쓴다. 실제 값은 index.css의 --branch-0..5 (다크/라이트가 다르다).
+const BRANCH_COUNT = 6;
 
 const branchColor = (branch: number) =>
-  branch < 0 ? '#6366f1' : BRANCH_COLORS[branch % BRANCH_COLORS.length];
+  branch < 0 ? '#6366f1' : `var(--branch-${branch % BRANCH_COUNT})`;
 
 interface TreeMeta {
   depth: Map<string, number>;
@@ -108,26 +111,24 @@ export function nodeLook(theme: MapTheme, depth: number, branch: number, custom?
         },
       };
     }
-    // 큰 가지만 상자다. 가지 색을 옅게 깔아 어느 가지인지 보인다.
-    if (top) {
-      return {
-        plain: false,
-        anchor: 'mid',
-        style: {
-          background: `color-mix(in srgb, ${c} 15%, #0f172a)`,
-          border: `1px solid color-mix(in srgb, ${c} 50%, #0f172a)`,
-          color: '#f1f5f9',
-          padding: '6px 12px',
-          borderRadius: 8,
-          ...text(14, 20, 600),
-        },
-      };
-    }
-    // 그 아래는 상자 없이 글자만 — 아래의 '글자만' 모양과 같다
+    // 모든 노드가 상자다. 깊이는 크기와 진하기로 구분한다: 큰 가지는 크고 진하게, 그 아래는 작고 옅게.
+    // (2026-10-04: 처음엔 큰 가지 아래를 글자만 뒀는데, 그러면 '상자'가 '글자만'과 구분되지 않았다)
+    return {
+      plain: false,
+      anchor: 'mid',
+      style: {
+        background: `color-mix(in srgb, ${c} ${top ? 15 : 7}%, var(--node-surface))`,
+        border: `1px solid color-mix(in srgb, ${c} ${top ? 50 : 28}%, var(--node-surface))`,
+        color: top ? 'var(--node-strong)' : 'var(--node-text)',
+        padding: top ? '6px 12px' : '4px 10px',
+        borderRadius: top ? 8 : 6,
+        ...(top ? text(14, 20, 600) : text(13, 18, 400)),
+      },
+    };
   }
 
   const font = top ? text(15, 20, 600) : text(13, 18, 400);
-  const color = top ? '#f8fafc' : '#cbd5e1';
+  const color = top ? 'var(--node-strong)' : 'var(--node-text)';
 
   if (theme === 'underline') {
     return {

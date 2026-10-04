@@ -3,6 +3,121 @@
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; padding: 0; }
 
+/* ─── 색 (2026-10-04) ────────────────────────────────────────────────
+   전환은 <html data-theme="dark|light"> 하나로 한다 (utils/colorMode.ts).
+
+   ponytail: 라이트는 Tailwind의 slate 변수 값을 뒤집어서 만든다. bg-slate-900이
+   var(--color-slate-900)으로 나오므로 컴포넌트 클래스 260여 곳을 고치지 않아도 된다.
+   대가로 라이트에서는 이름(slate-900)과 실제 색(흰색)이 어긋난다 — "숫자가 클수록 바탕에
+   가깝고 작을수록 글자에 가깝다"로 읽으면 된다. 헷갈려서 실수가 나오기 시작하면
+   bg-surface 같은 의미 이름으로 옮긴다. */
+:root {
+  color-scheme: dark;
+  /* 맵: 가지 색 여섯 개, 노드 글자·바탕 (utils/mapTheme.ts가 쓴다) */
+  --branch-0: #7aa2f7;
+  --branch-1: #9ece6a;
+  --branch-2: #e0af68;
+  --branch-3: #bb9af7;
+  --branch-4: #f7768e;
+  --branch-5: #7dcfff;
+  --node-surface: #0f172a;
+  --node-strong: #f8fafc;
+  --node-text: #cbd5e1;
+  /* 캔버스 바탕의 점, 미니맵 속 노드 */
+  --canvas-dot: #334155;
+  --minimap-node: #475569;
+  /* 노트 */
+  --note-bg: #0f172a;
+  --note-text: #cbd5e1;
+  --note-strong: #f8fafc;
+  --note-mark: #818cf8;
+  --note-highlight: #3b3f8f;
+  --note-quote-bg: #1c1917;
+  --note-quote-border: #57430f;
+  --note-quote-text: #fde68a;
+  --note-quote-label: #e0af68;
+  --note-code-bg: #1e293b;
+  --note-code-text: #a5b4fc;
+  --note-table-border: #334155;
+  --note-table-head: #111c33;
+  --note-done: #64748b;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  /* 바탕 → 글자 순으로 밝기를 뒤집는다. 회색에 초록을 조금 섞어 종이 느낌을 낸다. */
+  --color-slate-950: #f6f8f2; /* 캔버스 */
+  --color-slate-900: #ffffff; /* 툴바, 노트 창, 메뉴 */
+  --color-slate-800: #eef1ea; /* 버튼 바탕, 올렸을 때 */
+  --color-slate-700: #dfe4da; /* 테두리 */
+  --color-slate-600: #9aa59c; /* 옅은 테두리·글자 */
+  --color-slate-500: #7c877f;
+  --color-slate-400: #5c6861;
+  --color-slate-300: #3d4942;
+  --color-slate-200: #26312b;
+  --color-slate-100: #18211c;
+  --color-slate-50: #0f1612;
+  /* 밝은 바탕에서 읽히도록 글자로 쓰는 단계만 진하게, 옅은 바탕으로 쓰는 단계만 옅게 */
+  --color-indigo-300: #4338ca;
+  --color-indigo-400: #4f46e5;
+  --color-emerald-200: #14613c;
+  --color-emerald-300: #1f7a4d;
+  --color-emerald-400: #178a55;
+  --color-emerald-800: #c9ecd9;
+  --color-emerald-950: #dcf2e6;
+  --color-red-100: #7a1212;
+  --color-red-300: #b42318;
+  --color-red-400: #c0392b;
+  --color-red-800: #f0b0b0;
+  --color-red-900: #f8d2d2;
+  --color-red-950: #fde8e8;
+  --color-amber-100: #6b4a00;
+  --color-amber-300: #8a6100;
+  --color-amber-700: #e0b84a;
+  --color-amber-950: #fff3cd;
+
+  --branch-0: #3567c9;
+  --branch-1: #3a8a3e;
+  --branch-2: #b87d12;
+  --branch-3: #8156cf;
+  --branch-4: #cc4863;
+  --branch-5: #1b8fa8;
+  --node-surface: #ffffff;
+  --node-strong: #17201b;
+  --node-text: #3a4840;
+  --canvas-dot: #cdd4c6;
+  --minimap-node: #aab4a6;
+
+  --note-bg: #ffffff;
+  --note-text: #34413a;
+  --note-strong: #17201b;
+  --note-mark: #2c7a57;
+  --note-highlight: #ffe98a;
+  --note-quote-bg: #fff7d1;
+  --note-quote-border: #ead78a;
+  --note-quote-text: #5a4a0c;
+  --note-quote-label: #8a6d0f;
+  --note-code-bg: #eef1e9;
+  --note-code-text: #3730a3;
+  --note-table-border: #dfe4da;
+  --note-table-head: #eef1ea;
+  --note-done: #7c877f;
+}
+
+/* React Flow의 바탕 점·미니맵·확대 버튼을 앱 색에 맞춘다 (밝기는 colorMode prop이 정한다) */
+#root .react-flow {
+  --xy-background-color-default: transparent;
+  --xy-background-pattern-dots-color-default: var(--canvas-dot);
+  --xy-minimap-background-color-default: var(--color-slate-900);
+  --xy-minimap-mask-background-color-default: color-mix(in srgb, var(--color-slate-950) 70%, transparent);
+  --xy-minimap-node-background-color-default: var(--minimap-node);
+  --xy-controls-button-background-color-default: var(--color-slate-800);
+  --xy-controls-button-background-color-hover-default: var(--color-slate-700);
+  --xy-controls-button-color-default: var(--color-slate-300);
+  --xy-controls-button-color-hover-default: var(--color-slate-100);
+  --xy-controls-button-border-color-default: var(--color-slate-700);
+}
+
 /* 드래그 재배치 중 끄는 노드는 반투명 (정렬된 슬롯이 실제 자리를 보여줌) */
 .react-flow__node.rf-dragging {
   opacity: 0.4;
@@ -28,9 +143,9 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
    - 제목을 줄이고 제목 위에 여백을 둔다 (주제가 바뀌는 곳이 보이게)
    - 인용은 "핵심" 상자, 굵은 글씨는 형광펜 (외울 것이 먼저 눈에 들어오게) */
 /* 편집기 자체 규칙과 같은 무게라 나중에 불러온 쪽이 이긴다 → 바깥 래퍼를 붙여 확실히 이기게 한다 */
-.bn-container .bn-container[data-color-scheme='dark'] {
-  --bn-colors-editor-background: #0f172a;
-  --bn-colors-editor-text: #cbd5e1;
+.bn-container .bn-container[data-color-scheme] {
+  --bn-colors-editor-background: var(--note-bg);
+  --bn-colors-editor-text: var(--note-text);
 }
 .bn-container .bn-editor {
   max-width: 760px;
@@ -44,7 +159,7 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
 .bn-container [data-content-type='heading'] {
   --level: 1.5em;
   padding-top: 8px;
-  color: #f8fafc;
+  color: var(--note-strong);
   line-height: 1.35;
 }
 .bn-container [data-content-type='heading'][data-level='2'] {
@@ -59,20 +174,20 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
   width: 9px;
   height: 9px;
   border-radius: 2px;
-  background: #818cf8;
+  background: var(--note-mark);
 }
 .bn-container [data-content-type='heading'][data-level='3'] {
   --level: 1em;
   padding-top: 12px;
-  color: #e2e8f0;
+  color: var(--note-strong);
 }
 .bn-container [data-content-type='quote'] blockquote {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid #57430f;
+  border: 1px solid var(--note-quote-border);
   border-radius: 8px;
-  background: #1c1917;
-  color: #fde68a;
+  background: var(--note-quote-bg);
+  color: var(--note-quote-text);
 }
 .bn-container [data-content-type='quote'] blockquote::before {
   content: '핵심';
@@ -80,22 +195,23 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #e0af68;
+  color: var(--note-quote-label);
 }
 .bn-container .bn-inline-content strong {
   font-weight: 600;
-  color: #f8fafc;
-  background: linear-gradient(transparent 62%, #3b3f8f 62%);
+  color: var(--note-strong);
+  background: linear-gradient(transparent 62%, var(--note-highlight) 62%);
 }
 .bn-container .bn-inline-content code {
   padding: 1px 6px;
   border-radius: 4px;
-  background: #1e293b;
-  color: #a5b4fc;
+  background: var(--note-code-bg);
+  color: var(--note-code-text);
   font-family: Consolas, 'SFMono-Regular', monospace;
   font-size: 0.88em;
 }
 .bn-container .bn-block-content[data-content-type='codeBlock'] {
+  /* 라이트에서도 어둡게 둔다 — 구문 강조 색이 어두운 바탕용이다 */
   border: 1px solid #1e293b;
   background-color: #020617;
   color: #e2e8f0;
@@ -108,16 +224,16 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
 }
 .bn-container .bn-editor [data-content-type='table'] th,
 .bn-container .bn-editor [data-content-type='table'] td {
-  border-color: #334155;
+  border-color: var(--note-table-border);
   padding: 6px 10px;
   font-size: 14px;
   line-height: 1.5;
 }
 .bn-container .bn-editor [data-content-type='table'] th {
-  background: #111c33;
-  color: #cbd5e1;
+  background: var(--note-table-head);
+  color: var(--note-text);
   font-weight: 600;
 }
 .bn-container .bn-block-content[data-content-type='checkListItem'][data-checked='true'] .bn-inline-content {
-  color: #64748b;
+  color: var(--note-done);
 }

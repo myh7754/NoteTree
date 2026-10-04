@@ -158,7 +158,7 @@ function ScreenTab() {
               key={t.id}
               className={`flex flex-col items-center gap-1 rounded-lg border bg-slate-950 px-2 pb-1.5 pt-2 text-xs ${
                 theme === t.id
-                  ? 'border-indigo-500 font-semibold text-white ring-1 ring-indigo-500'
+                  ? 'border-indigo-500 font-semibold text-slate-50 ring-1 ring-indigo-500'
                   : 'border-slate-700 text-slate-200 hover:border-slate-500'
               }`}
               aria-pressed={theme === t.id}
@@ -182,7 +182,7 @@ function ScreenTab() {
               key={d}
               className={`flex flex-col items-center gap-1 rounded-lg border bg-slate-950 px-2 pb-1.5 pt-2 text-xs ${
                 direction === d
-                  ? 'border-indigo-500 font-semibold text-white ring-1 ring-indigo-500'
+                  ? 'border-indigo-500 font-semibold text-slate-50 ring-1 ring-indigo-500'
                   : 'border-slate-700 text-slate-200 hover:border-slate-500'
               }`}
               aria-pressed={direction === d}
@@ -600,7 +600,7 @@ function DirectionPreview({ both }: { both: boolean }) {
         return (
           <g key={`${left}-${y}`}>
             <path d={`M ${x} 30 H ${x + dir * 9} V ${y} H ${x + dir * 18}`} stroke="#6366f1" strokeWidth={1.5} fill="none" />
-            <rect x={left ? x - 46 : x + 18} y={y - 5} width={28} height={10} rx={3} fill="#1e293b" stroke="#475569" />
+            <rect x={left ? x - 46 : x + 18} y={y - 5} width={28} height={10} rx={3} className="fill-slate-800 stroke-slate-600" />
           </g>
         );
       })}
@@ -614,8 +614,8 @@ function ThemePreview({ theme }: { theme: MapTheme }) {
   const classic = theme === 'classic';
   const underline = theme === 'underline';
   const rows = [
-    { y: 15, label: '컬렉션', color: '#7aa2f7' },
-    { y: 45, label: 'JVM', color: '#9ece6a' },
+    { y: 15, label: '컬렉션', color: 'var(--branch-0)' },
+    { y: 45, label: 'JVM', color: 'var(--branch-1)' },
   ];
   // 밑줄형은 선이 글자 아래(밑줄)로 들어간다
   const drop = underline ? 8 : 0;
@@ -625,13 +625,13 @@ function ThemePreview({ theme }: { theme: MapTheme }) {
         <g key={y}>
           <path
             d={`M 36 30 H 46 V ${y + drop} H ${underline ? 112 : 56}`}
-            stroke={color}
+            style={{ stroke: color }}
             strokeWidth={1.5}
             fill="none"
             strokeLinejoin="round"
           />
-          {classic && <rect x={56} y={y - 9} width={56} height={18} rx={4} fill="#1a2238" stroke={color} />}
-          <text x={classic ? 63 : 60} y={y} dominantBaseline="central" fontSize={10} fontWeight={500} fill="#f1f5f9">
+          {classic && <rect x={56} y={y - 9} width={56} height={18} rx={4} style={{ fill: `color-mix(in srgb, ${color} 15%, var(--node-surface))`, stroke: color }} />}
+          <text x={classic ? 63 : 60} y={y} dominantBaseline="central" fontSize={10} fontWeight={500} className="fill-slate-100">
             {label}
           </text>
         </g>

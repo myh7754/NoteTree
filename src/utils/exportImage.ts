@@ -5,7 +5,6 @@ import { getNodesBounds, getViewportForBounds, type Node } from '@xyflow/react';
 const PADDING_RATIO = 0.08;
 // 브라우저 캔버스 한계와 파일 크기를 감안한 상한
 const MAX_SIDE = 4000;
-const CANVAS_BG = '#020617'; // bg-slate-950
 
 /**
  * 보이는 노드 전체가 들어가도록 마인드맵을 PNG로 내보낸다.
@@ -38,7 +37,8 @@ export async function exportToPng(nodes: Node[], title: string): Promise<void> {
   if (!el) throw new Error('캔버스를 찾지 못했습니다.');
 
   const dataUrl = await toPng(el, {
-    backgroundColor: CANVAS_BG,
+    // 지금 화면의 캔버스 색(bg-slate-950). 라이트 모드에서는 밝은 바탕으로 나온다.
+    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-slate-950').trim() || '#020617',
     width,
     height,
     style: {

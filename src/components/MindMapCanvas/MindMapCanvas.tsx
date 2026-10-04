@@ -87,6 +87,7 @@ function Flow() {
     focusRequest,
     fitRequest,
     readOnly,
+    colorMode,
   } = useMindMapStore();
   const layoutDirection = directionOf(mindMapData);
   const { getNodes, setCenter, getViewport, fitView } = useReactFlow();
@@ -398,6 +399,8 @@ function Flow() {
       onSelectionDragStart={onSelectionDragStart}
       onSelectionDrag={onSelectionDrag}
       onSelectionDragStop={onNodeDragStop}
+      /* 확대 버튼·미니맵 색이 앱의 색 모드를 따르게 한다. 나머지 색은 index.css의 --xy-* 변수 */
+      colorMode={colorMode}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       fitView
@@ -444,9 +447,9 @@ function Flow() {
           </svg>
         </ViewportPortal>
       )}
-      <Background color="#334155" gap={20} size={1} />
+      <Background gap={20} size={1} />
       <Controls />
-      <MiniMap nodeColor="#334155" maskColor="rgba(15,23,42,0.7)" />
+      <MiniMap />
     </ReactFlow>
   );
 }

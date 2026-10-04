@@ -13,17 +13,21 @@ describe('mapTheme', () => {
     expect(branch.has('root')).toBe(false);
   });
 
-  it('상자 모양은 깊이가 모양으로 읽힌다 — 중심은 채우고, 큰 가지는 가지 색 상자, 그 아래는 글자만', () => {
+  it('상자 모양은 모든 노드가 상자다 — 깊이는 크기와 진하기로 구분한다', () => {
     expect(nodeLook('classic', 0, -1).style.background).toBe('#6366f1');
 
     const top = nodeLook('classic', 1, 0);
-    expect(top.plain).toBe(false);
-    expect(String(top.style.background)).toContain('#7aa2f7');
-    expect(String(top.style.border)).toContain('#7aa2f7');
-
     const leaf = nodeLook('classic', 2, 0);
-    expect(leaf.plain).toBe(true);
-    expect(leaf.style.background).toBeUndefined();
+    const deep = nodeLook('classic', 5, 0);
+    for (const look of [top, leaf, deep]) {
+      expect(look.plain).toBe(false);
+      expect(String(look.style.background)).toContain('var(--branch-0)');
+      expect(String(look.style.border)).toContain('var(--branch-0)');
+    }
+    // 큰 가지가 그 아래보다 크고 진하다
+    expect(Number(top.style.fontSize)).toBeGreaterThan(Number(leaf.style.fontSize));
+    expect(top.style.background).not.toBe(leaf.style.background);
+    expect(deep.style).toEqual(leaf.style);
   });
 
   it('상자 모양에서 직접 칠한 노드는 깊이와 상관없이 꽉 채운 상자로 남는다', () => {
@@ -34,8 +38,8 @@ describe('mapTheme', () => {
   });
 
   it('상자 모양의 선도 가지 색을 쓴다', () => {
-    expect(edgeLook('classic', 0, 0)).toEqual({ color: '#7aa2f7', width: 2 });
-    expect(edgeLook('classic', 1, 1).color).toBe('#9ece6a');
+    expect(edgeLook('classic', 0, 0)).toEqual({ color: 'var(--branch-0)', width: 2 });
+    expect(edgeLook('classic', 1, 1).color).toBe('var(--branch-1)');
   });
 
   it('직접 칠한 색은 어느 테마에서든 테마 색보다 우선한다', () => {
@@ -60,6 +64,16 @@ describe('mapTheme', () => {
     expect(nodeLook('plain', 0, -1).plain).toBe(false);
     expect(nodeLook('plain', 1, 0).plain).toBe(true);
     expect(nodeLook('plain', 4, 0).plain).toBe(true);
+  });
+
+  it('글자와 바탕 색은 CSS 변수다 — 다크/라이트에서 값만 바뀐다', () => {
+    expect(nodeLook('plain', 1, 0).style.color).toBe('var(--node-strong)');
+    expect(nodeLook('plain', 2, 0).style.color).toBe('var(--node-text)');
+    expect(nodeLook('underline', 2, 3).style.borderBottom).toContain('var(--branch-3)');
+    expect(String(nodeLook('classic', 1, 0).style.background)).toContain('var(--node-surface)');
+    expect(nodeLook('classic', 2, 0).style.color).toBe('var(--node-text)');
+    // 가지는 여섯 색을 돌려 쓴다
+    expect(edgeLook('plain', 1, 7).color).toBe('var(--branch-1)');
   });
 
   it('선은 직각으로 꺾인다 — 높이가 같으면 직선', () => {

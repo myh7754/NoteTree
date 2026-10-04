@@ -5,7 +5,7 @@ import { NodeStyleBar } from '../Toolbar/NodeStyleBar';
 import { Icon } from '../Icon';
 
 const btn =
-  'flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-slate-300 hover:bg-slate-700 hover:text-white';
+  'flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-slate-300 hover:bg-slate-700 hover:text-slate-50';
 const sep = <span className="mx-1 h-4 w-px bg-slate-700" />;
 /** 노드 위쪽에 이만큼(px) 자리가 없으면 도구를 아래에 띄운다 */
 const ROOM_ABOVE = 56;
@@ -73,7 +73,7 @@ export function NodeActionBar({ id }: { id: string }) {
               <>
                 {sep}
                 <button
-                  className={`${btn} hover:!bg-red-600`}
+                  className={`${btn} hover:!bg-red-600 hover:!text-white`}
                   onClick={() => deleteNode(id)}
                   title="삭제"
                   aria-label="삭제"

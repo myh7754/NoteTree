@@ -43,7 +43,8 @@ export function BezierEdge({
   return (
     <path
       d={edgePath(x1, y1, x2, y2)}
-      stroke={isPreview ? '#f59e0b' : look.color}
+      // 색은 속성이 아니라 style로 준다 — 가지 색이 CSS 변수(var(--branch-n))라 속성에서는 보장되지 않는다
+      style={{ stroke: isPreview ? '#f59e0b' : look.color }}
       strokeWidth={isPreview ? 2.5 : look.width}
       fill="none"
       strokeLinecap="round"

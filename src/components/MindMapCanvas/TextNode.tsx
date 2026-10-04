@@ -77,7 +77,7 @@ export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps
       {editing ? (
         <input
           ref={inputRef}
-          className="bg-transparent outline-none w-full text-white"
+          className="bg-transparent outline-none w-full text-inherit"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           onBlur={handleBlur}

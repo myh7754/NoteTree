@@ -4,6 +4,7 @@ import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
 import { Extension, textInputRule } from '@tiptap/core';
 import { ko } from '@blocknote/core/locales';
+import { useResolvedTheme } from '../../utils/colorMode';
 import { SYMBOL_RULES } from '../../utils/symbolRules';
 
 // -> 를 치면 → 로, != 를 치면 ≠ 로 바꾼다. 코드 안에서는 바뀌지 않는다.
@@ -57,6 +58,8 @@ export function BlockNoteEditor({ nodeId, note, editable = true, onSave }: Block
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodeId]);
 
+  const theme = useResolvedTheme();
+
   const handleChange = () => {
     if (isProgrammaticUpdate.current || !nodeId) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -67,10 +70,10 @@ export function BlockNoteEditor({ nodeId, note, editable = true, onSave }: Block
   };
 
   return (
-    <div className="h-full overflow-y-auto bn-container" data-color-scheme="dark">
+    <div className="h-full overflow-y-auto bn-container" data-color-scheme={theme}>
       <BlockNoteView
         editor={editor}
-        theme="dark"
+        theme={theme}
         editable={editable}
         onChange={handleChange}
         style={{ minHeight: '100%' }}
