@@ -30,7 +30,7 @@ export function ShortcutsHelp() {
         className="relative w-full max-w-3xl max-h-[80vh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
       >
         <div className="sticky top-0 flex items-center justify-between px-5 py-3 border-b border-slate-700 bg-slate-900">
-          <h2 className="text-sm font-semibold text-slate-100">⌨ 단축키</h2>
+          <h2 className="text-sm font-semibold text-slate-100">단축키</h2>
           <button
             className="text-slate-400 hover:text-slate-200 text-lg leading-none px-1"
             onClick={() => setOpen(false)}

@@ -3,6 +3,8 @@ import { useMindMapStore } from '../../store/useMindMapStore';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { ResizeHandle } from './ResizeHandle';
 import { LinkPanel } from './LinkPanel';
+import { pathLabels } from '../../utils/treePath';
+import { Icon } from '../Icon';
 
 // BlockNote + Mantine은 1MB가 넘는데 노트 드로어는 기본으로 닫혀 있다.
 // 지연 로딩해서 초기 번들에서 떼어낸다 (드로어를 처음 열 때 받아온다).
@@ -30,6 +32,7 @@ export function NoteDrawer() {
   const selectedNode = selectedNodeId ? mindMapData.nodes[selectedNodeId] : null;
 
   const note = selectedNode?.note ?? '';
+  const path = selectedNodeId ? pathLabels(selectedNodeId, mindMapData) : [];
 
   return (
     <div
@@ -44,26 +47,32 @@ export function NoteDrawer() {
           <ResizeHandle onResize={setNoteDrawerWidth} side={side} />
 
           {/* 헤더 */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 flex-shrink-0">
-            <span className="text-sm font-semibold text-slate-200 truncate max-w-[80%]">
-              {selectedNode ? `📝 ${selectedNode.label}` : '노트'}
-            </span>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <button
-                className="text-slate-400 hover:text-slate-200 text-sm leading-none"
-                onClick={toggleSide}
-                title={side === 'right' ? '왼쪽으로 옮기기' : '오른쪽으로 옮기기'}
-              >
-                {side === 'right' ? '⇤' : '⇥'}
-              </button>
-              <button
-                className="text-slate-400 hover:text-slate-200 text-lg leading-none"
-                onClick={closeNoteDrawer}
-                title="닫기"
-              >
-                ✕
-              </button>
+          <div className="flex items-start gap-3 px-4 py-3 border-b border-slate-700 flex-shrink-0">
+            <div className="min-w-0 flex-1">
+              {/* 이 노트가 맵의 어디에 달린 것인지 — 노트만 읽고 있어도 자리를 잃지 않게 */}
+              {path.length > 0 && (
+                <div className="truncate text-[11px] text-slate-500">{path.join(' › ')}</div>
+              )}
+              <h2 className="truncate text-base font-bold text-slate-100">
+                {selectedNode ? selectedNode.label : '노트'}
+              </h2>
             </div>
+            <button
+              className="mt-0.5 text-slate-400 hover:text-slate-200"
+              onClick={toggleSide}
+              title={side === 'right' ? '왼쪽으로 옮기기' : '오른쪽으로 옮기기'}
+              aria-label={side === 'right' ? '왼쪽으로 옮기기' : '오른쪽으로 옮기기'}
+            >
+              <Icon name="side" />
+            </button>
+            <button
+              className="mt-0.5 text-slate-400 hover:text-slate-200"
+              onClick={closeNoteDrawer}
+              title="닫기"
+              aria-label="닫기"
+            >
+              <Icon name="close" />
+            </button>
           </div>
 
           {/* 에디터 영역 */}

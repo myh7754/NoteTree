@@ -129,7 +129,7 @@ export function AccountMenu() {
         disabled={state === 'syncing'}
         title="지금 동기화"
       >
-        {state === 'syncing' ? '⟳ 동기화 중…' : '⟳ 동기화'}
+        {state === 'syncing' ? '동기화 중…' : '동기화'}
       </button>
       <button
         className="px-2 py-1.5 rounded text-xs bg-slate-800 text-slate-400 hover:bg-slate-700 max-w-[10rem] truncate"
@@ -170,7 +170,7 @@ export function AccountMenu() {
                 useMindMapStore.getState().setSettingsOpen(true);
               }}
             >
-              ⚙ 계정 설정 · 회원 탈퇴
+              계정 설정 · 회원 탈퇴
             </button>
           </div>
         </>

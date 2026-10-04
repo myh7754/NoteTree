@@ -12,6 +12,8 @@ import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
 import { loadPublicMap, type PublicOwner } from './db/publish';
 import { mapPath } from './utils/publish';
 import { pickInitialDepth } from './utils/initialDepth';
+import { Logo } from './components/Logo';
+import { Icon } from './components/Icon';
 
 const noop = () => {};
 
@@ -54,13 +56,13 @@ export function PublicMapViewer({ handle, slug }: { handle: string; slug: string
 
   useGlobalShortcuts(noop, noop);
 
-  const btn = 'px-2 py-1.5 rounded text-xs bg-slate-700 text-slate-300 hover:bg-slate-600';
+  const btn = 'flex items-center gap-1.5 px-2 py-1.5 rounded text-xs bg-slate-700 text-slate-300 hover:bg-slate-600';
 
   return (
     <div className="flex flex-col h-full bg-slate-950">
       <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-slate-900 border-b border-slate-700 flex-shrink-0 whitespace-nowrap [&>*]:shrink-0">
-        <a href="/" className="text-indigo-400 font-semibold text-sm" title="홈으로">
-          🗺
+        <a href="/" title="홈으로">
+          <Logo />
         </a>
         {map && owner && owner.maps.length > 1 ? (
           // 이 사람이 공개한 다른 맵으로 옮겨 간다. 주소가 바뀌어야 하므로(공유·새로고침)
@@ -96,10 +98,11 @@ export function PublicMapViewer({ handle, slug }: { handle: string; slug: string
         {state === 'ready' && (
           <>
             <button className={btn} onClick={() => setSearchOpen(true)} title="노드·노트 검색 (Ctrl+F)">
-              🔍 검색
+              <Icon name="search" size={14} />
+              검색
             </button>
             <button className={btn} onClick={() => expandToLevel(99)} title="접힌 가지를 모두 펼친다">
-              ⤢ 전체 펼치기
+              전체 펼치기
             </button>
           </>
         )}
@@ -118,7 +121,7 @@ export function PublicMapViewer({ handle, slug }: { handle: string; slug: string
         )}
         <AccountMenu />
         <button className={btn} onClick={() => setShortcutsOpen(true)} title="단축키 (?)" aria-label="단축키">
-          ⌨
+          <Icon name="keyboard" />
         </button>
       </div>
 

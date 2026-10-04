@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { track } from '../../lib/analytics';
 import { useMindMapStore } from '../../store/useMindMapStore';
+import { Icon } from '../Icon';
 import { noteToPlainText } from '../../utils/noteText';
 
 const MAX_RESULTS = 50;
@@ -110,7 +111,7 @@ export function SearchPanel() {
   return (
     <div className="absolute top-3 right-3 z-20 w-80 rounded-lg border border-slate-700 bg-slate-900/95 shadow-xl backdrop-blur">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-700">
-        <span className="text-slate-500 text-sm">🔍</span>
+        <span className="text-slate-500"><Icon name="search" /></span>
         <input
           ref={inputRef}
           className="flex-1 bg-transparent text-sm text-slate-100 placeholder-slate-500 outline-none"
@@ -149,7 +150,7 @@ export function SearchPanel() {
               >
                 <div className="text-sm text-slate-200 truncate">{hit.label}</div>
                 {hit.snippet && (
-                  <div className="text-xs text-slate-500 truncate mt-0.5">📝 {hit.snippet}</div>
+                  <div className="text-xs text-slate-500 truncate mt-0.5">{hit.snippet}</div>
                 )}
               </button>
             ))
