@@ -55,3 +55,28 @@ describe('TextNode 접기 버튼', () => {
     expect(screen.queryByRole('button', { name: /접기|펼치기/ })).not.toBeInTheDocument();
   });
 });
+
+describe('TextNode 노드 도구', () => {
+  it('고른 노드에만 뜬다', () => {
+    renderNode(a, true);
+    expect(screen.getByTestId('node-toolbar')).toBeInTheDocument();
+  });
+
+  it('고르지 않은 노드에는 없다 — 마우스를 올려도 삭제 버튼이 나오지 않는다', () => {
+    renderNode(a, false);
+    expect(screen.queryByTestId('node-toolbar')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('삭제')).not.toBeInTheDocument();
+  });
+
+  it('읽기전용에서는 골라도 뜨지 않는다', () => {
+    useMindMapStore.setState({ readOnly: true });
+    renderNode(a, true);
+    expect(screen.queryByTestId('node-toolbar')).not.toBeInTheDocument();
+  });
+
+  it('이름을 고치는 중에는 뜨지 않는다 — 입력칸을 가린다', () => {
+    store().setEditingNodeId(a);
+    renderNode(a, true);
+    expect(screen.queryByTestId('node-toolbar')).not.toBeInTheDocument();
+  });
+});

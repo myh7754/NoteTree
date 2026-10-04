@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { notePreviewBlocks, type PreviewBlock } from '../../utils/notePreview';
+import { Icon } from '../Icon';
 
 const CARD_W = 360;
 const CARD_MAX_H = 320;
@@ -17,7 +18,7 @@ interface Props {
 }
 
 /**
- * 노드의 📝 아이콘. 마우스를 올리면 노트 미리보기 카드를 띄우고,
+ * 노드의 노트 아이콘. 마우스를 올리면 노트 미리보기 카드를 띄우고,
  * 아이콘이나 카드 위에 있는 동안 유지한다(카드 안에서 긴 노트를 스크롤할 수 있게). 클릭하면 노트 창.
  *
  * 카드는 body로 포털한다: 노드 안에 두면 캔버스 배율을 따라 글자가 작아지고,
@@ -51,7 +52,7 @@ export function NoteIconButton({ note, title, className, onOpen }: Props) {
         onMouseLeave={scheduleClose}
         aria-label="노트 있음"
       >
-        📝
+        <Icon name="note" size={12} />
       </button>
       {anchor &&
         createPortal(
@@ -98,7 +99,7 @@ function NotePreviewCard({
       onMouseLeave={onMouseLeave}
     >
       <div className="px-3 py-2 border-b border-slate-700 text-slate-100 font-semibold truncate">
-        📝 {title}
+        {title}
       </div>
       <div className="px-3 py-2 overflow-y-auto space-y-1 leading-relaxed select-text">
         {blocks.map((b, i) => (

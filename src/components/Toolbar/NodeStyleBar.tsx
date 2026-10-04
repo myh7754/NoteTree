@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMindMapStore } from '../../store/useMindMapStore';
+import { Icon } from '../Icon';
 
 // 어두운 캔버스 위에서 흰 글씨가 읽히는 채도로 고른 팔레트
 const PALETTE = [
@@ -42,14 +43,14 @@ export function NodeStyleBar() {
         />
       ))}
       <button
-        className={`w-4 h-4 rounded-full border border-slate-600 bg-slate-700 text-[9px] leading-none text-slate-300 hover:scale-110 transition-transform ${
+        className={`flex items-center justify-center w-4 h-4 rounded-full border border-slate-600 bg-slate-700 text-[9px] leading-none text-slate-300 hover:scale-110 transition-transform ${
           currentColor ? '' : 'border-white'
         }`}
         onClick={() => setNodeColor(selectedNodeId, null, includeSubtree)}
         title="기본색으로"
         aria-label="색 없음"
       >
-        ✕
+        <Icon name="close" size={9} />
       </button>
 
       <button

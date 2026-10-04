@@ -20,6 +20,7 @@ import { TextNode } from './TextNode';
 import { TableNode } from './TableNode';
 import { BezierEdge } from './BezierEdge';
 import { ChordPanController } from './ChordPanController';
+import { EmptyMapHint } from './EmptyMapHint';
 import { edgePath } from '../../utils/mapTheme';
 import { directionOf } from '../../utils/layout';
 
@@ -453,10 +454,11 @@ function Flow() {
 
 export function MindMapCanvas() {
   return (
-    <div className="flex-1 h-full bg-slate-950">
+    <div className="relative flex-1 h-full bg-slate-950">
       <ReactFlowProvider>
         <Flow />
       </ReactFlowProvider>
+      <EmptyMapHint />
     </div>
   );
 }

@@ -4,13 +4,14 @@ import type { MindMapNode } from '../../types';
 import { useMindMapStore, collectSubtree } from '../../store/useMindMapStore';
 import { hasNoteContent } from '../../utils/noteText';
 import { NoteIconButton } from './NoteIconButton';
+import { NodeActionBar } from './NodeActionBar';
 import { nodeLook, treeMeta } from '../../utils/mapTheme';
 import { directionOf, leftBranchStart } from '../../utils/layout';
 
 export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps<MindMapNode>) {
   const [label, setLabel] = useState(data.label);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { updateNodeLabel, toggleCollapse, openNoteDrawer, deleteNode, mindMapData, editingNodeId, setEditingNodeId, readOnly, mapTheme } =
+  const { updateNodeLabel, toggleCollapse, openNoteDrawer, mindMapData, editingNodeId, setEditingNodeId, readOnly, mapTheme } =
     useMindMapStore();
 
   // 편집 상태는 스토어가 단일 출처: 더블클릭/F2/Tab·Enter(생성 직후) 모두 여기로 모인다.
@@ -85,30 +86,8 @@ export const TextNode = memo(function TextNode({ data, id, selected }: NodeProps
         />
       )}
 
-      {/* 액션 버튼은 노드 '위에 떠서' 나온다 (absolute).
-          흐름 안에 두면 hover 하는 순간 노드가 넓어지고, 그 바람에 오른쪽의 접기 버튼이
-          28px 밀려난다 — 접으려다 그 자리에 들어온 ✕(삭제)를 누르게 된다. 실제로 겪었다.
-          띄워두면 노드 폭이 hover와 무관하게 고정되어 접기 버튼이 움직이지 않는다. */}
-      <div className="hidden group-hover:flex items-center gap-1 absolute -top-3 right-1 z-20">
-        {!noted && (
-          <button
-            className="text-xs px-1.5 py-0.5 rounded bg-indigo-600 text-white hover:bg-indigo-500 shadow"
-            onClick={(e) => { e.stopPropagation(); openNoteDrawer(id); }}
-            title="노트 열기"
-          >
-            📝
-          </button>
-        )}
-        {!readOnly && (
-          <button
-            className="text-xs px-1.5 py-0.5 rounded bg-slate-600 text-white hover:bg-red-600 shadow"
-            onClick={(e) => { e.stopPropagation(); deleteNode(id); }}
-            title="삭제"
-          >
-            ✕
-          </button>
-        )}
-      </div>
+      {/* 노드에 하는 일은 고른 노드 위에 뜬다. 이름을 고치는 중에는 입력칸을 가리므로 숨긴다. */}
+      {selected && !readOnly && !editing && <NodeActionBar id={id} />}
 
       {hasChildren && (
         <button

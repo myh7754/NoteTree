@@ -4,9 +4,11 @@ import type { MindMapNode } from '../../types';
 import { useMindMapStore } from '../../store/useMindMapStore';
 import { hasNoteContent } from '../../utils/noteText';
 import { NoteIconButton } from './NoteIconButton';
+import { NodeActionBar } from './NodeActionBar';
+import { Icon } from '../Icon';
 
 export const TableNode = memo(function TableNode({ data, id, selected }: NodeProps<MindMapNode>) {
-  const { updateNodeTableData, openNoteDrawer, deleteNode, readOnly } = useMindMapStore();
+  const { updateNodeTableData, openNoteDrawer, readOnly } = useMindMapStore();
   const tableData = data.tableData ?? { headers: ['컬럼 1', '컬럼 2'], rows: [['', '']] };
   const noted = hasNoteContent(data.note);
 
@@ -45,8 +47,9 @@ export const TableNode = memo(function TableNode({ data, id, selected }: NodePro
       <Handle type="target" position={Position.Left} className="!opacity-0" />
 
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-slate-400 font-medium">
-          📊 {data.label}
+        <span className="flex items-center gap-1 text-xs text-slate-400 font-medium">
+          <Icon name="table" size={12} />
+          {data.label}
           {/* 내용이 있는 노트는 항상 표시 (TextNode와 동일한 규칙) */}
           {noted && (
             <NoteIconButton
@@ -57,24 +60,6 @@ export const TableNode = memo(function TableNode({ data, id, selected }: NodePro
             />
           )}
         </span>
-        <div className="hidden group-hover:flex gap-1">
-          {!noted && (
-            <button
-              className="text-xs px-1 rounded bg-indigo-600 text-white"
-              onClick={() => openNoteDrawer(id)}
-            >
-              📝
-            </button>
-          )}
-          {!readOnly && (
-            <button
-              className="text-xs px-1 rounded bg-slate-600 text-white"
-              onClick={() => deleteNode(id)}
-            >
-              ✕
-            </button>
-          )}
-        </div>
       </div>
 
       <table className="text-xs w-full border-collapse">
@@ -132,6 +117,8 @@ export const TableNode = memo(function TableNode({ data, id, selected }: NodePro
           )}
         </tbody>
       </table>
+
+      {selected && !readOnly && <NodeActionBar id={id} />}
 
       <Handle type="source" position={Position.Right} className="!opacity-0" />
     </div>
