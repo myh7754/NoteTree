@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { track } from '../lib/analytics';
 
 /**
  * 노트에 넣는 사진. DB(maps.data)가 아니라 파일 저장소에 올리고 노트에는 주소만 남긴다 —
@@ -84,6 +85,7 @@ export async function uploadNoteImage(file: File, shrink = shrinkImage): Promise
     }
     throw new Error(`사진을 올리지 못했습니다: ${error.message}`);
   }
+  track('image_uploaded', { kb: Math.round(blob.size / 1024) });
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 

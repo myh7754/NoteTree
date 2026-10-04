@@ -30,3 +30,12 @@ jobs:
           echo "HTTP $code / body: $(head -c 200 /tmp/body)"
           # 2xx가 아니면 실패로 남겨 Actions 알림이 오게 한다 (정지되면 DNS부터 사라져 000이 찍힌다)
           [ "$code" -ge 200 ] && [ "$code" -lt 300 ]
+
+      # 사이트 자체가 뜨는지도 본다. 오류 추적(Sentry)은 누가 들어와야 울리므로,
+      # 방문자가 없는 동안 사이트가 죽어 있으면 아무도 모른다. 실패하면 Actions 알림 메일이 온다.
+      - name: Check the site is up
+        if: always()
+        run: |
+          code=$(curl -s -o /tmp/site -w '%{http_code}' -L https://notetree-app.vercel.app/)
+          echo "HTTP $code"
+          [ "$code" = "200" ] && grep -q 'id="root"' /tmp/site

@@ -378,6 +378,7 @@ export const useMindMapStore = create<MindMapStore>()(
         // 수집도 여기 한 곳에 둔다. 라벨은 보내지 않는다 — 깊이와 맵 id만.
         track('node_added', {
           map_id: newData.id,
+          kind: type,
           depth: (buildTreeIndex(newData.rootId, newData.children).depth.get(newId) ?? 0),
         });
         return newId;
@@ -713,7 +714,11 @@ export const useMindMapStore = create<MindMapStore>()(
 
       setExternalChange: (value) => set({ hasExternalChange: value }),
 
-      openNoteDrawer: (nodeId) => set({ selectedNodeId: nodeId, isNoteDrawerOpen: true }),
+      openNoteDrawer: (nodeId) => {
+        // viewer: 공개 맵을 읽는 사람이 연 것인지. 노트가 실제로 읽히는지를 가른다
+        track('note_opened', { map_id: get().mindMapData.id, viewer: get().readOnly });
+        set({ selectedNodeId: nodeId, isNoteDrawerOpen: true });
+      },
 
       closeNoteDrawer: () => set({ isNoteDrawerOpen: false }),
 

@@ -13,6 +13,13 @@ describe('sanitize', () => {
     expect(sanitize(props)).toEqual(props);
   });
 
+  // 금지 키 정규식이 넓어서(name, note, text…) 멀쩡한 속성이 조용히 떨어질 수 있다.
+  // 실제로 보내는 속성 이름을 여기 고정해 둔다 — 새 이벤트를 더하면 여기에도 더한다.
+  it('앱이 실제로 보내는 속성은 전부 통과한다', () => {
+    const props = { format: 'markdown', provider: 'google', kind: 'table', viewer: true, kb: 312 };
+    expect(sanitize(props)).toEqual(props);
+  });
+
   it('콘텐츠로 보이는 키는 떨어뜨린다', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     const out = sanitize({

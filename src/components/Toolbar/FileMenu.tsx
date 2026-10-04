@@ -61,6 +61,7 @@ export function FileMenu() {
     const data = await loadJsonFile();
     loadFromPersisted(data, {});
     setTimeout(applyLayout, 50);
+    track('import_used', { format: 'json' });
   };
 
   // 가져온 마크다운은 새 맵으로 연다 (지금 보던 과목을 덮어쓰지 않는다)
@@ -68,6 +69,7 @@ export function FileMenu() {
     const { name, text } = await pickTextFile('.md,.markdown,.txt');
     const fallback = name.replace(/\.(md|markdown|txt)$/i, '');
     openMap(importFromMarkdown(text, fallback), {});
+    track('import_used', { format: 'markdown' });
   };
 
   return (

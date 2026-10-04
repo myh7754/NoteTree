@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase, isCloudEnabled } from '../db/supabase';
-import { resetIdentity } from '../lib/analytics';
+import { resetIdentity, track } from '../lib/analytics';
 
 export interface AuthState {
   session: Session | null;
@@ -53,6 +53,7 @@ export type AuthProvider = 'github' | 'google' | 'kakao';
 
 export async function signInWith(provider: AuthProvider): Promise<void> {
   if (!supabase) return;
+  track('login_clicked', { provider });
   const { error } = await supabase.auth.signInWithOAuth({
     provider,
     options: { redirectTo: window.location.origin },
