@@ -13,7 +13,7 @@ const REFIT_DELAY_MS = 400;
  * 소개 페이지에 끼우는 공개 맵 미리보기.
  *
  * 그림 파일이 아니라 실제 맵이다 — 운영자가 맵을 고치면 여기도 같이 바뀐다.
- * 조작은 막고(pointer-events-none) 칸 전체를 공개 목록으로 가는 링크로 둔다.
+ * 조작은 막고(inert) 칸 전체를 공개 목록으로 가는 링크로 덮는다.
  * 불러오지 못하면 아무것도 그리지 않는다. 소개 페이지는 글만으로도 성립한다.
  */
 export function IntroPreview({ handle, slug }: { handle: string; slug: string }) {
@@ -55,26 +55,27 @@ export function IntroPreview({ handle, slug }: { handle: string; slug: string })
   if (state === 'failed') return null;
 
   return (
-    <a
-      href={`/u/${encodeURIComponent(handle)}`}
-      aria-label="예시 맵 열어 보기"
-      className="relative block h-96 min-w-0 flex-1 overflow-hidden rounded-xl border border-slate-800 bg-slate-950 hover:border-slate-600"
-    >
+    // flex-1은 가로 배치(lg)에서만 건다. 세로 배치에서 걸면 높이가 내용 크기(0)로 줄어든다.
+    <div className="relative h-96 min-w-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-950 hover:border-slate-600 lg:flex-1">
       <span className="absolute left-3 top-3 z-10 flex items-center gap-2 text-[11px] text-slate-500">
         <span className="rounded-full bg-emerald-950 px-2 py-0.5 text-emerald-300">공개 중</span>
         운영자의 공부 기록 · 읽기 전용
       </span>
       {state === 'ready' && (
-        // 확대 버튼과 미니맵은 누를 수 없으니 숨긴다 (index.css의 .intro-preview)
-        <div
-          className="intro-preview pointer-events-none h-full"
-          aria-hidden="true"
-        >
+        // inert: 마우스뿐 아니라 키보드 초점과 스크린 리더에서도 캔버스를 뺀다.
+        // 확대 버튼과 미니맵은 index.css의 .intro-preview가 숨긴다.
+        <div className="intro-preview h-full" inert>
           <ErrorBoundary label="미리보기를 표시하지 못했습니다.">
             <MindMapCanvas />
           </ErrorBoundary>
         </div>
       )}
-    </a>
+      {/* 링크는 캔버스를 감싸지 않고 위에 덮는다 — 감싸면 캔버스 안의 링크와 겹친다 */}
+      <a
+        href={`/u/${encodeURIComponent(handle)}`}
+        aria-label="예시 맵 열어 보기"
+        className="absolute inset-0 z-20 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-400"
+      />
+    </div>
   );
 }

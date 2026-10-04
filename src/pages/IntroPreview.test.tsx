@@ -48,6 +48,25 @@ describe('IntroPreview', () => {
     await waitFor(() => expect(useMindMapStore.getState().fitRequest).toBeGreaterThan(atReady));
   });
 
+  it('캔버스는 링크 안이 아니라 inert 칸 안에 있다 — 키보드가 노드마다 멈추거나 링크 안에 링크가 생기지 않게', async () => {
+    loadPublicMap.mockResolvedValue(found);
+    render(<IntroPreview handle="myh" slug="자바" />);
+    const canvas = await screen.findByTestId('canvas');
+
+    expect(canvas.closest('[inert]')).not.toBeNull();
+    expect(canvas.closest('a')).toBeNull();
+  });
+
+  it('좁은 화면(세로 배치)에서도 높이가 유지된다 — flex-1은 가로 배치(lg)에서만 건다', () => {
+    loadPublicMap.mockReturnValue(new Promise(() => {}));
+    const { container } = render(<IntroPreview handle="myh" slug="자바" />);
+    const box = container.firstElementChild!;
+
+    expect(box.className).toContain('h-96');
+    expect(box.className).toContain('lg:flex-1');
+    expect(box.className.split(' ')).not.toContain('flex-1');
+  });
+
   it('불러오는 동안에도 칸 자리는 잡혀 있다 — 맵이 뜰 때 글이 밀리지 않게', () => {
     loadPublicMap.mockReturnValue(new Promise(() => {}));
     render(<IntroPreview handle="myh" slug="자바" />);
