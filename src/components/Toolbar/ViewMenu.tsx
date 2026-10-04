@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMindMapStore } from '../../store/useMindMapStore';
 import { keysFor } from '../../utils/shortcuts';
+import { Icon } from '../Icon';
 
 const LEVELS = [1, 2, 3, 4];
 
@@ -29,11 +30,12 @@ export function ViewMenu() {
   return (
     <div className="relative">
       <button
-        className="px-2 py-1.5 rounded text-xs bg-slate-700 text-slate-300 hover:bg-slate-600"
+        className="flex items-center gap-1.5 rounded-md p-1.5 text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200"
         onClick={() => setIsOpen((v) => !v)}
         title="펼치기 / 접기"
       >
-        👁 보기 ▾
+        <Icon name="eye" />
+        보기
       </button>
 
       {isOpen && (

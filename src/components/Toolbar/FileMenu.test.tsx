@@ -26,7 +26,7 @@ import { exportToPng } from '../../utils/exportImage';
 
 function openMenu() {
   render(<FileMenu />);
-  fireEvent.click(screen.getByRole('button', { name: /파일/ }));
+  fireEvent.click(screen.getByRole('button', { name: '더보기' }));
 }
 
 beforeEach(() => {

@@ -16,6 +16,7 @@ const store = () => useMindMapStore.getState();
 
 beforeEach(() => {
   store().setShortcutsOpen(false);
+  store().setSettingsOpen(false);
 });
 
 describe('Toolbar', () => {
@@ -40,15 +41,33 @@ describe('Toolbar', () => {
 
   it('매번 쓰는 것들은 그대로 밖에 있다', () => {
     render(<Toolbar />);
-    expect(screen.getByRole('button', { name: /텍스트/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /검색/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /보기/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /파일/ })).toBeInTheDocument();
+    for (const name of ['실행 취소', '다시 실행', '검색', '보기', '정렬', '더보기']) {
+      expect(screen.getByRole('button', { name })).toBeInTheDocument();
+    }
   });
 
-  it('단축키 버튼을 누르면 도움말이 열린다', () => {
+  /**
+   * 추가 버튼과 색 팔레트는 고른 노드 위의 노드 도구로 갔다.
+   * 툴바에 남아 있으면 노드를 고를 때마다 툴바 모양이 바뀐다.
+   */
+  it('노드를 골라도 툴바에 추가 버튼과 색 팔레트가 없다', () => {
+    store().setSelectedNodeId(store().mindMapData.rootId);
     render(<Toolbar />);
-    fireEvent.click(screen.getByRole('button', { name: '단축키' }));
+    expect(screen.queryByRole('button', { name: /텍스트/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '파랑' })).not.toBeInTheDocument();
+  });
+
+  it('더보기 → 단축키를 누르면 도움말이 열린다', () => {
+    render(<Toolbar />);
+    fireEvent.click(screen.getByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByText('단축키'));
     expect(store().isShortcutsOpen).toBe(true);
+  });
+
+  it('더보기 → 설정을 누르면 설정창이 열린다', () => {
+    render(<Toolbar />);
+    fireEvent.click(screen.getByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByText('설정'));
+    expect(store().isSettingsOpen).toBe(true);
   });
 });

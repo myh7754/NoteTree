@@ -5,6 +5,7 @@ import { syncNow } from '../../db/cloudSync';
 import { getMyHandle, getPublishState, setMapPublic, type PublishState } from '../../db/publish';
 import { mapUrl, handleUrl } from '../../utils/publish';
 import { track } from '../../lib/analytics';
+import { Icon } from '../Icon';
 import { HandleForm } from './HandleForm';
 
 const PANEL =
@@ -111,7 +112,7 @@ export function PublishMenu() {
   return (
     <div className="relative">
       <button
-        className={`px-2 py-1.5 rounded text-xs ${
+        className={`flex items-center gap-1.5 px-2 py-1.5 rounded-full text-xs ${
           state === undefined
             ? 'bg-slate-800 text-slate-500'
             : live
@@ -125,7 +126,19 @@ export function PublishMenu() {
         aria-expanded={isOpen}
         title="이 맵을 공개할지 정합니다"
       >
-        {state === undefined ? '공개 설정…' : live ? '🌐 공개 중' : '🔒 비공개'}
+        {state === undefined ? (
+          '공개 설정…'
+        ) : live ? (
+          <>
+            <Icon name="globe" size={14} />
+            공개 중
+          </>
+        ) : (
+          <>
+            <Icon name="lock" size={14} />
+            비공개
+          </>
+        )}
       </button>
 
       {isOpen && (

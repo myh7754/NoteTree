@@ -3,6 +3,7 @@ import type { MapSummary } from '../../types';
 import { useMindMapStore, createEmptyMindMap } from '../../store/useMindMapStore';
 import { listMaps, loadMindMap, deleteMap, saveMindMap } from '../../db/mindmapDB';
 import { track } from '../../lib/analytics';
+import { Icon } from '../Icon';
 
 function formatDate(ts: number): string {
   if (!ts) return '';
@@ -87,7 +88,7 @@ export function MapSwitcher() {
         aria-label="맵 목록"
         aria-expanded={isOpen}
       >
-        ▾
+        <Icon name="chev" size={14} />
       </button>
 
       {isOpen && (
@@ -132,7 +133,7 @@ export function MapSwitcher() {
                         title="삭제"
                         aria-label={`${m.title} 삭제`}
                       >
-                        🗑
+                        <Icon name="trash" size={13} />
                       </button>
                     )}
                   </div>

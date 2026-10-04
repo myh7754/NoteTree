@@ -6,9 +6,10 @@ import { downloadJson, loadJsonFile } from '../../utils/exportJson';
 import { importFromMarkdown, pickTextFile } from '../../utils/importMarkdown';
 import { exportToPng } from '../../utils/exportImage';
 import { track } from '../../lib/analytics';
+import { Icon } from '../Icon';
 
 /**
- * 파일 입출력 메뉴.
+ * 더보기(⋯) 메뉴: 파일 입출력, 단축키, 설정.
  *
  * 전에는 툴바에 버튼 다섯 개가 나란히 있었다. 하루에 한 번 쓸까 말까 한
  * 기능들이 매분 쓰는 버튼(추가·검색·되돌리기)과 같은 무게로 자리를 차지해
@@ -21,6 +22,8 @@ export function FileMenu() {
   const openMap = useMindMapStore((s) => s.openMap);
   const applyLayout = useMindMapStore((s) => s.applyLayout);
   const setSaveStatus = useMindMapStore((s) => s.setSaveStatus);
+  const setShortcutsOpen = useMindMapStore((s) => s.setShortcutsOpen);
+  const setSettingsOpen = useMindMapStore((s) => s.setSettingsOpen);
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -70,25 +73,32 @@ export function FileMenu() {
   return (
     <div className="relative">
       <button
-        className="px-2 py-1.5 rounded text-xs bg-slate-700 text-slate-300 hover:bg-slate-600"
+        className="flex items-center rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
         onClick={() => setIsOpen((v) => !v)}
-        title="열기 · 저장 · 내보내기"
+        title="파일 · 단축키 · 설정"
+        aria-label="더보기"
+        aria-expanded={isOpen}
       >
-        ⋯ 파일 ▾
+        <Icon name="more" />
       </button>
 
       {isOpen && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
           <div className="absolute top-full right-0 mt-1 z-40 w-52 rounded-lg border border-slate-700 bg-slate-900 shadow-xl py-1">
-            <Item icon="📂" label="열기" onClick={() => run(handleLoadJson)} />
-            <Item icon="💾" label="JSON 저장" onClick={() => run(() => exported('json', () => downloadJson(mindMapData)))} />
+            <Item label="열기" onClick={() => run(handleLoadJson)} />
+            <Item label="JSON 저장" onClick={() => run(() => exported('json', () => downloadJson(mindMapData)))} />
 
             <div className="my-1 border-t border-slate-800" />
 
-            <Item icon="📥" label="MD 가져오기" onClick={() => run(handleImportMarkdown)} />
-            <Item icon="↓" label="MD 내보내기" onClick={() => run(() => exported('markdown', handleExportMarkdown))} />
-            <Item icon="🖼" label="PNG로 저장" onClick={() => run(() => exported('png', () => exportToPng(rfNodes, mindMapData.title)))} />
+            <Item label="MD 가져오기" onClick={() => run(handleImportMarkdown)} />
+            <Item label="MD 내보내기" onClick={() => run(() => exported('markdown', handleExportMarkdown))} />
+            <Item label="PNG로 저장" onClick={() => run(() => exported('png', () => exportToPng(rfNodes, mindMapData.title)))} />
+
+            <div className="my-1 border-t border-slate-800" />
+
+            <Item label="단축키" onClick={() => run(() => setShortcutsOpen(true))} />
+            <Item label="설정" onClick={() => run(() => setSettingsOpen(true))} />
           </div>
         </>
       )}
@@ -96,14 +106,13 @@ export function FileMenu() {
   );
 }
 
-function Item({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
+function Item({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
-      className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-xs text-slate-200 hover:bg-slate-800"
+      className="w-full px-3 py-1.5 text-left text-xs text-slate-200 hover:bg-slate-800"
       onClick={onClick}
     >
-      <span className="w-4 text-center shrink-0">{icon}</span>
-      <span>{label}</span>
+      {label}
     </button>
   );
 }
