@@ -533,10 +533,15 @@ function AccountTab() {
 
       <StorageRow />
 
-      <Row label="개인정보" hint="수집 항목, 보관 기간, 국외 이전 사업자를 적어 두었습니다.">
-        <a className="text-xs text-indigo-400 hover:text-indigo-300" href="/privacy">
-          개인정보 처리방침 ↗
-        </a>
+      <Row label="약관과 개인정보" hint="이용 조건과 요금, 수집 항목, 보관 기간, 국외 이전 사업자를 적어 두었습니다.">
+        <div className="flex gap-4">
+          <a className="text-xs text-indigo-400 hover:text-indigo-300" href="/terms">
+            이용약관 ↗
+          </a>
+          <a className="text-xs text-indigo-400 hover:text-indigo-300" href="/privacy">
+            개인정보 처리방침 ↗
+          </a>
+        </div>
       </Row>
 
       <div className="border-t border-slate-800 pt-4">

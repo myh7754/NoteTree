@@ -7,6 +7,7 @@ import { Intro } from './pages/Intro';
 import { LegacyMapRedirect } from './pages/LegacyMapRedirect';
 import { useAuth } from './hooks/useAuth';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { Terms } from './components/Terms';
 import { parseRoute } from './utils/route';
 import { initSentry } from './lib/sentry';
 import { initAnalytics, identify, track } from './lib/analytics';
@@ -28,6 +29,7 @@ onAccountShortcuts((raw) => useMindMapStore.getState().setShortcutOverrides(raw)
 /**
  * 주소와 로그인 여부로 화면이 갈린다.
  * - /privacy        처리방침 (누구에게나, 로그인 확인을 기다리지 않고)
+ * - /terms          이용약관 (위와 같다)
  * - /u/<닉네임>      그 사람이 공개한 맵 목록
  * - /m/<닉네임>/<슬러그>  공개 맵 하나 (읽기전용)
  * - /m/<옛 슬러그>   예전 주소 → 새 주소로 넘김
@@ -49,6 +51,7 @@ function Root() {
   const route = parseRoute(location.pathname);
   // 공개 화면과 처리방침은 로그인 확인을 기다리지 않는다 — 로그인 없이 보는 게 요점이다.
   if (route.kind === 'privacy') return <PrivacyPolicy />;
+  if (route.kind === 'terms') return <Terms />;
   if (route.kind === 'map') return <PublicMapViewer handle={route.handle} slug={route.slug} />;
   if (route.kind === 'legacyMap') return <LegacyMapRedirect slug={route.slug} />;
   if (route.kind === 'profile') return <PublicProfile handle={route.handle} />;

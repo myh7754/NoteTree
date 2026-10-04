@@ -179,15 +179,18 @@ export function AccountMenu() {
   );
 }
 
-/** 처리방침은 법적 고지라 로그인 여부와 무관하게 닿을 수 있어야 한다. */
+/** 약관과 처리방침은 법적 고지라 로그인 여부와 무관하게 닿을 수 있어야 한다. 로그인 버튼 바로 아래에 둔다. */
 function PrivacyLink() {
   return (
-    <a
-      href="/privacy"
-      className="mt-3 block text-[10px] text-slate-600 hover:text-slate-400"
-    >
-      개인정보 처리방침
-    </a>
+    <div className="mt-3 text-[10px] text-slate-600">
+      <a href="/terms" className="hover:text-slate-400">
+        이용약관
+      </a>
+      {' · '}
+      <a href="/privacy" className="hover:text-slate-400">
+        개인정보 처리방침
+      </a>
+    </div>
   );
 }
 

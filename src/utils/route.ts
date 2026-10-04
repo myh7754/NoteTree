@@ -7,6 +7,7 @@
  */
 export type Route =
   | { kind: 'privacy' }
+  | { kind: 'terms' }
   | { kind: 'profile'; handle: string }
   | { kind: 'map'; handle: string; slug: string }
   /** 2026-10-02 이전의 주소(/m/<슬러그>). 새 주소로 넘겨준다 — 이미 보낸 링크를 살리기 위해. */
@@ -17,6 +18,7 @@ export function parseRoute(pathname: string): Route {
   // 끝의 슬래시는 무시한다. /privacy 와 /privacy/ 가 다른 화면이면 곤란하다.
   const path = pathname.replace(/\/+$/, '');
   if (path === '/privacy') return { kind: 'privacy' };
+  if (path === '/terms') return { kind: 'terms' };
 
   // 조각 수를 정확히 맞춘다. /u/a/b 를 "닉네임 a"로 관대하게 받으면
   // 오타 난 주소가 엉뚱한 사람의 공개 목록을 띄운다.

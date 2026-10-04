@@ -73,6 +73,10 @@ export function Intro() {
         </section>
 
         <footer className="mt-20 border-t border-slate-900 pt-6">
+          <a href="/terms" className="text-[11px] text-slate-600 hover:text-slate-400">
+            이용약관
+          </a>
+          <span className="mx-2 text-[11px] text-slate-600">·</span>
           <a href="/privacy" className="text-[11px] text-slate-600 hover:text-slate-400">
             개인정보 처리방침
           </a>
