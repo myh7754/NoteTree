@@ -164,3 +164,47 @@ drop trigger if exists maps_quota on public.maps;
 create trigger maps_quota
   before insert or update of data, positions on public.maps
   for each row execute function public.maps_enforce_quota();
+
+-- ─────────────────────────────────────────────────────────────
+-- 노트에 넣는 사진 (2026-10-04). DB가 아니라 파일 저장소(무료 1GB, DB 500MB와 별개)에 둔다.
+--
+-- 공개 버킷이다: 주소를 아는 사람은 로그인 없이 읽는다. 공개 맵의 방문자가 사진을 봐야 해서다.
+-- 파일 이름이 무작위(<계정 번호>/<uuid>.webp)라 주소를 맞힐 수는 없고, 목록 조회 정책이 없어
+-- 남의 폴더를 훑어볼 수도 없다. 대신 비공개 맵의 사진도 주소가 새면 보인다.
+--
+--   한 장      2MB  (앱이 올리기 전에 긴 변 1600px로 줄인다. 버킷이 크기와 형식을 강제)
+--   한 사람    50MB (올리기 정책이 강제. 이미 쓴 양만 보므로 마지막 한 장만큼 넘칠 수 있다)
+-- 숫자를 바꾸면 src/db/images.ts와 이용약관 4항도 같이 고친다.
+-- 노트에서 사진을 지워도 파일은 남는다(정리 기능 없음). 탈퇴하면 delete-account 함수가 지운다.
+-- ─────────────────────────────────────────────────────────────
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('note-images', 'note-images', true, 2097152,
+        array['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+-- 내가 올린 사진의 합계. 정책과 화면(설정 → 계정)이 같은 숫자를 쓴다.
+-- security definer: 목록 조회 정책이 없어서 본인도 storage.objects를 직접 읽지 못한다.
+create or replace function public.note_images_used()
+returns bigint
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(sum((metadata->>'size')::bigint), 0)
+    from storage.objects
+    where bucket_id = 'note-images'
+      and (storage.foldername(name))[1] = (select auth.uid())::text;
+$$;
+
+drop policy if exists "본인 폴더에만 사진 올리기" on storage.objects;
+create policy "본인 폴더에만 사진 올리기"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'note-images'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+    and public.note_images_used() < 52428800
+  );

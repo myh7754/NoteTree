@@ -35,7 +35,9 @@ export function PrivacyPolicy() {
               않습니다.
             </li>
             <li>
-              <b className="text-slate-200">이용자가 만든 내용</b> — 마인드맵의 노드, 노트, 제목.
+              <b className="text-slate-200">이용자가 만든 내용</b> — 마인드맵의 노드, 노트, 제목,
+              노트에 올린 사진. 사진은 주소를 아는 사람이 로그인 없이 볼 수 있는 방식으로
+              저장됩니다(주소는 추측할 수 없게 만들어집니다).
             </li>
             <li>
               <b className="text-slate-200">접속 기록</b> — 서비스 운영 과정에서 남는 접속 로그와
@@ -61,7 +63,7 @@ export function PrivacyPolicy() {
 
         <Section title="3. 보관 기간과 파기">
           <ul className="list-disc space-y-1 pl-5">
-            <li>계정을 삭제하면 계정 정보와 작성한 마인드맵이 함께 즉시 삭제됩니다.</li>
+            <li>계정을 삭제하면 계정 정보와 작성한 마인드맵, 올린 사진이 함께 즉시 삭제됩니다.</li>
             <li>삭제한 마인드맵은 다른 기기와의 동기화를 위해 표시만 해 두었다가 30일 뒤 완전히 지웁니다.</li>
             <li>접속 로그는 서비스 제공자(아래 4항)의 보관 정책에 따릅니다.</li>
             <li>
@@ -86,7 +88,7 @@ export function PrivacyPolicy() {
               <tbody>
                 <tr>
                   <td className="border border-slate-700 px-2 py-1">Supabase</td>
-                  <td className="border border-slate-700 px-2 py-1">계정·마인드맵 저장</td>
+                  <td className="border border-slate-700 px-2 py-1">계정·마인드맵·사진 저장</td>
                   <td className="border border-slate-700 px-2 py-1">대한민국 (서울)</td>
                 </tr>
                 <tr>

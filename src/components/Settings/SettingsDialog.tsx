@@ -19,6 +19,7 @@ import { COLOR_MODES } from '../../utils/colorMode';
 import { directionOf } from '../../utils/layout';
 import { ShortcutList } from '../ShortcutsHelp/ShortcutsHelp';
 import { storageSummary } from '../../db/storage';
+import { getImagesUsed, IMAGE_QUOTA_BYTES } from '../../db/images';
 import { useStorageUsed } from '../../hooks/useStorageUsed';
 
 /**
@@ -475,6 +476,11 @@ function PublishTab() {
  */
 function StorageRow() {
   const used = useStorageUsed();
+  // 사진은 맵과 다른 저장소, 다른 한도다. 설정을 열 때 한 번만 읽는다.
+  const [images, setImages] = useState<number | null>(null);
+  useEffect(() => {
+    getImagesUsed().then(setImages, () => {});
+  }, []);
   if (used === null) return null; // 못 읽었으면 틀린 숫자를 보여 주느니 숨긴다
   const { ratio: percent, usedMb, quotaMb, nodesLeft } = storageSummary(used);
   return (
@@ -497,6 +503,7 @@ function StorageRow() {
       </div>
       <div className="mt-1 text-[11px] text-slate-400">
         {usedMb}MB / {quotaMb}MB 사용 ({percent.toFixed(1)}%)
+        {images !== null && ` · 사진 ${(images / 1024 / 1024).toFixed(1)}MB / ${IMAGE_QUOTA_BYTES / 1024 / 1024}MB`}
       </div>
     </Row>
   );
@@ -547,7 +554,7 @@ function AccountTab() {
       <div className="border-t border-slate-800 pt-4">
         <div className="text-xs font-medium text-slate-300">회원 탈퇴</div>
         <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-          계정과 모든 맵이 지워집니다. 되돌릴 수 없습니다.
+          계정과 모든 맵, 올린 사진이 지워집니다. 되돌릴 수 없습니다.
         </p>
         {!confirming ? (
           <button

@@ -26,6 +26,14 @@ describe('이용약관', () => {
     expect(text).toMatch(/직접 결제하기 전에는 요금이\s*청구되지 않습니다/);
   });
 
+  it('저장 용량 조항에 사진 한도와 공개 범위가 있다', () => {
+    render(<Terms />);
+    const text = screen.getByRole('heading', { name: /저장 용량/ }).closest('section')!.textContent ?? '';
+    expect(text).toMatch(/한 장에 2MB/);
+    expect(text).toMatch(/50MB/);
+    expect(text).toMatch(/주소를 아는 사람/);
+  });
+
   it('처리방침으로 가는 링크와 문의처가 있다', () => {
     render(<Terms />);
     expect(screen.getByRole('link', { name: '개인정보 처리방침' })).toHaveAttribute('href', '/privacy');

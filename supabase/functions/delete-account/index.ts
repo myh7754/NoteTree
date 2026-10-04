@@ -40,7 +40,18 @@ Deno.serve(async (req) => {
     const { data, error } = await admin.auth.getUser(token);
     if (error || !data.user) return json({ error: 'unauthorized' }, 401);
 
-    // maps·showcase_owners는 on delete cascade로 함께 사라진다.
+    // 노트에 올린 사진. 저장소의 파일은 cascade로 지워지지 않아서 직접 지운다.
+    // 계정보다 먼저 지운다 — 실패하면 계정이 남아 있어 다시 시도할 수 있다.
+    const images = admin.storage.from('note-images');
+    for (;;) {
+      const { data: files, error: listErr } = await images.list(data.user.id, { limit: 1000 });
+      if (listErr) throw listErr;
+      if (!files.length) break;
+      const { error: rmErr } = await images.remove(files.map((f) => `${data.user.id}/${f.name}`));
+      if (rmErr) throw rmErr;
+    }
+
+    // maps·profiles는 on delete cascade로 함께 사라진다.
     const { error: delErr } = await admin.auth.admin.deleteUser(data.user.id);
     if (delErr) {
       console.error('[delete-account] deleteUser failed', delErr);
